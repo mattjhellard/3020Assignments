@@ -1,6 +1,6 @@
 # 3020 Assignments Repository
-* READ THIS IF TOTALLY UNCOMFORTABLE WITH BASIC GIT FUNCTIONS, otherwise skip ahead to group protocol suggestions *
-* Since we've agreed on VS, this will be oriented for that context *
+**READ THIS IF TOTALLY UNCOMFORTABLE WITH BASIC GIT FUNCTIONS, otherwise skip ahead to group protocol suggestions**
+**Since we've agreed on VS, this will be oriented for that context**
 - To work with the github repo in VS, you must first clone it. (Git > Clone Repository > use ...github.com/mattjhellard/3020Assignments), this will create a local copy of the repo
 - To import changes made to the github repo since cloning, you can pull (in Git Changes tab on RHS)
 - To make changes to the github repo from VS, you should sign into your github account within VS (File > Account Settings > All Accounts > Add)

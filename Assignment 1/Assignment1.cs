@@ -92,7 +92,7 @@ public class ServerGraph
 }
 
 // 5 marks
-class WebPage
+public class WebPage
 {
     public string Name { get; set; }
     public string Server { get; set; }
@@ -107,7 +107,7 @@ class WebPage
         return -1;
     }
 }
-class WebGraph
+public class WebGraph
 {
     private List<WebPage> P;
 

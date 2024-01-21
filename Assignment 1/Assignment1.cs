@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 public class ServerGraph // Working on this today, see branch -MH
 {
@@ -173,4 +174,15 @@ public class WebGraph
 
     }
 
+}
+
+//TEMP: Unofficial Main for developement purposes, replace with Main as described in assignment before submission!
+//P.S: feel free to comment out the whole class and use your own Main
+public class Tester
+{
+    public static void Main()
+    {
+        Console.WriteLine("Test Test 123 123 :)");
+        Console.ReadLine(); // in case you've forgotten this is here to circumvent the console window from closing on completion (by technically preventing completion)
+    }
 }

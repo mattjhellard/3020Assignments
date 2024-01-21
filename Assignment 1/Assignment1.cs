@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 public class ServerGraph // Working on this today, see branch -MH
 {
@@ -105,8 +107,13 @@ public class WebPage
     }
     public int FindLink(string name)
     {
-        // PLACEHOLDER
-        return -1;
+        if(E.Count == 0) //if E is empty we can give up the search immediately, we can also avoid potential errors from dealing with an empty list
+        {
+            return -1;
+        }
+        //by using predicates we can simplify how we interact with the List E, note that this way of doing things isn't an upgrade in efficiency, the list is still ultimately traversed one thing at a time until the desired result is found
+        bool findName(WebPage page) { return page.Name == name; }
+        return E.FindIndex(findName); // using the above local function, FindIndex will return the first index that returns true,or -1 if none of them do
     }
 }
 public class WebGraph // Getting started on this, but feel free to jump in on it -MH
@@ -119,12 +126,13 @@ public class WebGraph // Getting started on this, but feel free to jump in on it
     {
         P = new List<WebPage>();
     }
+
     // 2 marks
     // Return the index of the webpage with the given name; otherwise return -1
     private int FindPage(string name)
     {
-        // PLACEHOLDER
-        return -1;
+        bool findName(WebPage page) { return page.Name == name; }
+        return P.FindIndex(findName); // using the above local function, FindIndex will return the first index that returns true,or -1 if none of them do
     }
     // 4 marks
     // Add a webpage with the given name and store it on the host server
@@ -175,4 +183,12 @@ public class WebGraph // Getting started on this, but feel free to jump in on it
 
     }
 
+}
+public class Tester
+{
+    public static void Main()
+    {
+        WebPage pooper = new WebPage("fart", "farty");
+        pooper.FindLink("fartface");
+    }
 }

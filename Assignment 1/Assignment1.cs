@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class ServerGraph // Working on this today, see branch -MH
 {
@@ -8,6 +9,12 @@ public class ServerGraph // Working on this today, see branch -MH
     {
         public string Name;
         public List<WebPage> P;
+
+        public WebServer(string name)
+        {
+            Name = name;
+            P = new List<WebPage>();
+        }
     }
     private WebServer[] V;
     private bool[,] E;
@@ -62,14 +69,40 @@ public class ServerGraph // Working on this today, see branch -MH
         V = newV;
         E = newE;
     }
+
     // 3 marks
     // Add a server with the given name and connect it to the other server
     // Return true if successful; otherwise return false
     public bool AddServer(string name, string other)
     {
-        // PLACEHOLDER:
-        return false;
+        WebServer newServer; //we could avoid using newServer like this by wrapping everything after this if in an else but why do that? Isn't this nice as is? Certainly nicer than gratuitous wrapping 
+        if(NumServers == 0) //handling first server add by just creating designated other before moving on
+        {
+            newServer = new WebServer(other);
+            // because there are no pre-existing servers if the process gets here, and because the class is constructed with capacity for at least one server, we need not check if we need to first double our capacities
+            V[0] = newServer;
+        }
+        //adding designated server
+        newServer = new WebServer(name);
+        if (V.Length == NumServers) // if this is true then V is full and needs to have its capacity expanded
+        {
+            DoubleCapacity();
+        }
+        V[NumServers] = newServer; //recall that arrays are 0 indexxed but NumServers is not, i.e, if there were, say, 7 servers, placing a new one at [7] would place it in the 8th position
+        NumServers++;
+        //new server successfully created at this point
+        //connecting new server to "other" server
+        //utilizing included AddConnection method to reduce code redundancy, this technically forgoes information that could make the connection easier, namely the from server having an already known index (end of V), but I think the reduced redundancy is worth that price
+        if (AddConnection(name, other))
+        {
+            return true; //if the method call was a success
+        }
+        else //this else isn't strictly necessary but improves readability well enough to justify the extra wrap in my opinion
+        {
+            return false; //if the method call was a failure
+        }
     }
+
     // 3 marks
     // Add a webpage to the server with the given name
     // Return true if successful; other return false
@@ -87,15 +120,34 @@ public class ServerGraph // Working on this today, see branch -MH
         // PLACEHOLDER
         return false;
     }
+
     // 3 marks
     // Add a connection from one server to another
     // Return true if successful; otherwise return false
     // Note that each server is connected to at least one other server
     public bool AddConnection(string from, string to)
     {
-        // PLACEHOLDER
-        return false;
+        int FromIndex = FindServer(from); //getting index of "from" server
+        if(FromIndex == -1)
+        {
+            return false; //if supplied "from" server not found
+        }
+        int ToIndex = FindServer(to); //same as above but for "to" server
+        if(ToIndex == -1)
+        {
+            return false;
+        }
+        //there's probably a way to do the above more efficiently (we're doing basically the same thing twice in a row), but it would probably also be very convoluted and this way makes specific error messages, for example, very easy to implement
+        if(FromIndex == ToIndex)
+        { //if a loop has been requested, we currently disallow loops as a server connecting to itself doesn't make sense
+            return false;
+        }
+        E[FromIndex,ToIndex] = true;
+        E[ToIndex,FromIndex] = true;
+        //updating both locations on the matrix as this is an undirected graph and that's the simplest way of handling it with an adjacency matrix
+        return true;
     }
+    
     // 10 marks
     // Return all servers that would disconnect the server graph into
     // two or more disjoint graphs if ever one of them would go down
@@ -130,7 +182,7 @@ public class WebPage
     public List<WebPage> E { get; set; }
     public WebPage(string name, string host)
     {
-
+    
     }
     public int FindLink(string name)
     {

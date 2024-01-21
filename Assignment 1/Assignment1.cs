@@ -75,12 +75,16 @@ public class ServerGraph // Working on this today, see branch -MH
     // Return true if successful; otherwise return false
     public bool AddServer(string name, string other)
     {
-        WebServer newServer; //we could avoid using newServer like this by wrapping everything after this if in an else but why do that? Isn't this nice as is? Certainly nicer than gratuitous wrapping 
+        WebServer newServer; //we could avoid using newServer like this by wrapping everything after this if in an else but why do that? Isn't this nice as is? Certainly nicer than gratuitous wrapping in my opinion
         if(NumServers == 0) //handling first server add by just creating designated other before moving on
         {
             newServer = new WebServer(other);
             // because there are no pre-existing servers if the process gets here, and because the class is constructed with capacity for at least one server, we need not check if we need to first double our capacities
             V[0] = newServer;
+        }
+        if(FindServer(name) != -1) //checking that desired server name is unique
+        { //this should come after adding the first server when starting from 0 servers so that the check can apply to the initial "other" server
+            return false;
         }
         //adding designated server
         newServer = new WebServer(name);

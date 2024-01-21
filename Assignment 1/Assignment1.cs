@@ -99,7 +99,9 @@ public class WebPage
     public List<WebPage> E { get; set; }
     public WebPage(string name, string host)
     {
-
+        Name = name;
+        Server = host;
+        E = new List<WebPage>();
     }
     public int FindLink(string name)
     {

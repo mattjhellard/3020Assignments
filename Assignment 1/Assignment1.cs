@@ -255,17 +255,4 @@ public class WebGraph
     {
 
     }
-
-}
-
-//TEMP: Unofficial Main for developement purposes, replace with Main as described in assignment before submission!
-//P.S: feel free to comment out the whole class and use your own Main
-public class Tester
-{
-    public static void Main()
-    {
-        ServerGraph testies = new ServerGraph();
-        Console.WriteLine(testies); //we don't expect a pretty or useful output for this
-        Console.ReadLine(); // in case you've forgotten this is here to circumvent the console window from closing on completion (by technically preventing completion)
-    }
 }

@@ -107,7 +107,7 @@ public class WebPage
         return -1;
     }
 }
-public class WebGraph
+public class WebGraph // Getting started on this, but feel free to jump in on it -MH
 {
     private List<WebPage> P;
 

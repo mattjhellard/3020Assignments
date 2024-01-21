@@ -115,7 +115,7 @@ public class WebGraph // Getting started on this, but feel free to jump in on it
     // Create an empty WebGraph
     public WebGraph()
     {
-
+        P = new List<WebPage>();
     }
     // 2 marks
     // Return the index of the webpage with the given name; otherwise return -1

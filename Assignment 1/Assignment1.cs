@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-public class ServerGraph // Working on this today, see branch -MH
+public class ServerGraph
 {
     // 3 marks
     private class WebServer
@@ -199,7 +199,7 @@ public class WebPage
         return E.FindIndex(findName); // using the above local function, FindIndex will return the first index that returns true,or -1 if none of them do
     }
 }
-public class WebGraph // Getting started on this, but feel free to jump in on it -MH
+public class WebGraph
 {
     private List<WebPage> P;
 

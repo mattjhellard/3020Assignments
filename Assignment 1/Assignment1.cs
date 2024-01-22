@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Linq;
+﻿using System.Collections.Generic;
 
 public class ServerGraph // Working on this today, see branch -MH
 {
@@ -192,7 +189,7 @@ public class WebGraph // Getting started on this, but feel free to jump in on it
         {
             return false; //if the to page wasn't found
         }
-        P.ElementAt(FromIndex).E.Add(P.ElementAt(ToIndex)); //adding the to page to the list of pages on the from page
+        P[FromIndex].E.Add(P[ToIndex]); //adding the to page to the list of pages on the from page
         return true;
     }
 
@@ -206,7 +203,7 @@ public class WebGraph // Getting started on this, but feel free to jump in on it
         {
             return false; //if from index not found then we can't proceed
         }
-        WebPage page = P.ElementAt(FromIndex);
+        WebPage page = P[FromIndex];
         RemoveLink(page,to);
         return true;
     }
@@ -236,12 +233,4 @@ public class WebGraph // Getting started on this, but feel free to jump in on it
 
     }
 
-}
-public class Tester
-{
-    public static void Main()
-    {
-        WebPage pooper = new WebPage("fart", "farty");
-        pooper.FindLink("fartface");
-    }
 }

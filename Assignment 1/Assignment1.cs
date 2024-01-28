@@ -74,13 +74,13 @@ public class ServerGraph
     public bool AddServer(string name, string other)
     {
         WebServer newServer; //we could avoid using newServer like this by wrapping everything after this if in an else but why do that? Isn't this nice as is? Certainly nicer than gratuitous wrapping in my opinion
-        if(NumServers == 0) //handling first server add by just creating designated other before moving on
+        if (NumServers == 0) //handling first server add by just creating designated other before moving on
         {
             newServer = new WebServer(other);
             // because there are no pre-existing servers if the process gets here, and because the class is constructed with capacity for at least one server, we need not check if we need to first double our capacities
             V[0] = newServer;
         }
-        if(FindServer(name) != -1) //checking that desired server name is unique
+        if (FindServer(name) != -1) //checking that desired server name is unique
         { //this should come after adding the first server when starting from 0 servers so that the check can apply to the initial "other" server
             return false;
         }
@@ -130,26 +130,32 @@ public class ServerGraph
     public bool AddConnection(string from, string to)
     {
         int FromIndex = FindServer(from); //getting index of "from" server
-        if(FromIndex == -1)
+        if (FromIndex == -1)
         {
             return false; //if supplied "from" server not found
         }
         int ToIndex = FindServer(to); //same as above but for "to" server
-        if(ToIndex == -1)
+        if (ToIndex == -1)
         {
             return false;
         }
         //there's probably a way to do the above more efficiently (we're doing basically the same thing twice in a row), but it would probably also be very convoluted and this way makes specific error messages, for example, very easy to implement
-        if(FromIndex == ToIndex)
+        if (FromIndex == ToIndex)
         { //if a loop has been requested, we currently disallow loops as a server connecting to itself doesn't make sense
             return false;
         }
-        E[FromIndex,ToIndex] = true;
-        E[ToIndex,FromIndex] = true;
+        E[FromIndex, ToIndex] = true;
+        E[ToIndex, FromIndex] = true;
         //updating both locations on the matrix as this is an undirected graph and that's the simplest way of handling it with an adjacency matrix
         return true;
     }
-    
+
+    public bool RemoveWebPage(string webpage, string name)
+    {
+        // PLACEHOLDER
+        return false;
+    }
+
     // 10 marks
     // Return all servers that would disconnect the server graph into
     // two or more disjoint graphs if ever one of them would go down
@@ -221,24 +227,23 @@ public class WebGraph
     // 4 marks
     // Add a webpage with the given name and store it on the host server
     // Return true if successful; otherwise return false
-    public bool AddPage(string name, string host)
+    public bool AddPage(string name, string host, ServerGraph S)
     {
-        if (FindPage(name) != -1)
-        { //if the page name already exists,
-            return false; //since we don't want duplicate names
+        if (FindPage(name) != -1 || S == null)
+        { //if the page name already exists or the given ServerGraph doesn't really exist,
+            return false; //since we don't want duplicate names or to handle nonexistant servers
         }
         WebPage newPage = new WebPage(name, host);
         P.Add(newPage);
-        return true;
-        //IMPORTANT NOTE: The webpage isn't actually connected to the server yet, as there isn't really a proper way of doing that here
-        //The handler of the specific ServerGraph and WebGraph objects MUST immediately turn around and make the connection in ServerGraph
+        return S.AddWebPage(newPage, host);
+        //by returning the value of this call we make it someone elses problem to handle it if it fails, keep in mind that all the method could reasonably do if it did fail is also return false, so it makes no diffrence
     }
 
     // 8 marks
     // Remove the webpage with the given name, including the hyperlinks
     // from and to the webpage
     // Return true if successful; otherwise return false
-    public bool RemovePage(string name)
+    public bool RemovePage(string name, ServerGraph S)
     {
         if (P.Count == 0)
         {
@@ -252,8 +257,10 @@ public class WebGraph
         //first checking for and removing links TO the page, this will technically also remove loops should any exist when it passes the webpage to delete
         foreach (WebPage page in P)
         {
-            RemoveLink(page,name); //using overloaded RemoveLink, see after the regular method for functionality
+            RemoveLink(page, name); //using overloaded RemoveLink, see after the regular method for functionality
         }
+        //deleting the page from the server, since this method isn't given the name of the host we have to retrieve it ourselves
+        S.RemoveWebPage(name, P[PageIndexToRemove].Server);
         //deleting the page itself, this should take the outgoing hyperlinks with it
         P.RemoveAt(PageIndexToRemove);
         return true;
@@ -265,12 +272,12 @@ public class WebGraph
     public bool AddLink(string from, string to)
     {
         int FromIndex = FindPage(from);
-        if(FromIndex == -1)
+        if (FromIndex == -1)
         {
             return false; //if the from page wasn't found
         }
         int ToIndex = FindPage(to);
-        if(ToIndex == -1)
+        if (ToIndex == -1)
         {
             return false; //if the to page wasn't found
         }
@@ -289,7 +296,7 @@ public class WebGraph
             return false; //if from index not found then we can't proceed
         }
         WebPage page = P[FromIndex];
-        RemoveLink(page,to);
+        RemoveLink(page, to);
         return true;
     }
 
@@ -306,7 +313,7 @@ public class WebGraph
     // Return the average length of the shortest paths from the webpage with
     // given name to each of its hyperlinks
     // Hint: Use the method ShortestPath in the class ServerGraph
-    public float AvgShortestPaths(string name)
+    public float AvgShortestPaths(string name, ServerGraph S)
     {
         // PLACEHOLDER
         return 0f;

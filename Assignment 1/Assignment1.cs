@@ -110,17 +110,80 @@ public class ServerGraph
     // Return true if successful; other return false
     public bool AddWebPage(WebPage w, string name)
     {
-        // PLACEHOLDER
-        return false;
+        int ServerIndex = FindServer(name);
+        if (ServerIndex == -1)
+        {
+            return false; //if given server name wasn't found
+        }
+        if (V[ServerIndex].P.Contains(w))
+        {
+            return false; //we don't want to add a webpage that's already there
+        }
+        else
+        {
+            V[ServerIndex].P.Add(w); //actually adding the webpage
+            return true;
+        }
     }
+
     // 4 marks
     // Remove the server with the given name by assigning its connections
     // and webpages to the other server
     // Return true if successful; otherwise return false
     public bool RemoveServer(string name, string other)
     {
-        // PLACEHOLDER
-        return false;
+        if (name.Equals(other))
+        { //if the server names are the same then this request is invalid so we fail out
+            return false;
+        }
+        //creating these separately from check to use their values later
+        int nameIndex = FindServer(name);
+        int otherIndex = FindServer(other);
+        if(nameIndex == -1 || otherIndex == -1)
+        { //if either designated server not found then fail out
+            return false;
+        }
+        //adding every webpage within the designated removal server to the designated assignment server
+        foreach(WebPage page in V[nameIndex].P)
+        {
+            V[otherIndex].P.Add(page);
+        }
+        //in this loop we both adjust the removee's connections to the other server, AND move the last server's connections to the removee's index
+        for(int i = NumServers-1; i>=0; i--)
+        {
+            if (E[i, nameIndex] && i != otherIndex) //we don't want to connect the other server to itself, so we skip this when that would happen
+            { //recall that servergraph is undirected so we only have to check one axis but we still have to apply the changes to both
+                AddConnection(V[otherIndex].Name, V[i].Name); //AddConnection will apply the changes appropriately for us
+            }
+            //moving last server in list's connections to designated removal server's index
+            //note: when nameIndex == NumServers -1 (when removing last server in list), this achieves nothing, but if it doesn't create bugs then it shows how good the logic is
+            E[i, nameIndex] = E[i, NumServers - 1];
+            E[nameIndex, i] = E[NumServers - 1, i];
+        }
+        //at this point the removee server has had all it's webpages reassigned, all connections reassigned, and the last server is ready to take it's place
+        V[nameIndex] = V[NumServers - 1];
+        NumServers--; //it would be bad to forget this
+        return true;
+    }
+
+    // 3 marks (Bonus)
+    // Remove the webpage from the server with the given name
+    // Return true if successful; otherwise return false
+    public bool RemoveWebPage(string webpage, string name)
+    {
+        int ServerIndex = FindServer(name); //storing this value in variable to use it later
+        if (ServerIndex == -1)
+        { //if given server name was not found
+            return false;
+        }
+        bool findName(WebPage page) { return page.Name == webpage; } //using this to utilize a list method that iterates the check itself 
+        WebPage pageToRemove = V[ServerIndex].P.Find(findName); //declaring this separately to use the value it returns if successful
+        if (pageToRemove == null)
+        {
+            return false; //we can't remove what's not there
+        }
+        V[ServerIndex].P.Remove(pageToRemove); //removing the webpage from the server's list of webpages
+        return true;
     }
 
     // 3 marks
@@ -148,12 +211,6 @@ public class ServerGraph
         E[ToIndex, FromIndex] = true;
         //updating both locations on the matrix as this is an undirected graph and that's the simplest way of handling it with an adjacency matrix
         return true;
-    }
-
-    public bool RemoveWebPage(string webpage, string name)
-    {
-        // PLACEHOLDER
-        return false;
     }
 
     // 10 marks
@@ -234,9 +291,13 @@ public class WebGraph
             return false; //since we don't want duplicate names or to handle nonexistant servers
         }
         WebPage newPage = new WebPage(name, host);
-        P.Add(newPage);
-        return S.AddWebPage(newPage, host);
-        //by returning the value of this call we make it someone elses problem to handle it if it fails, keep in mind that all the method could reasonably do if it did fail is also return false, so it makes no diffrence
+        if (S.AddWebPage(newPage, host))
+        { //only if the above call succeeds do we want to proceed and add the webpage to WebGraph
+            P.Add(newPage);
+            return true;
+        }
+        //think of this like defaulting to a fail, if the process gets here then it must be a failure
+        return false;
     }
 
     // 8 marks
@@ -295,8 +356,7 @@ public class WebGraph
         {
             return false; //if from index not found then we can't proceed
         }
-        WebPage page = P[FromIndex];
-        RemoveLink(page, to);
+        RemoveLink(P[FromIndex], to);
         return true;
     }
 
@@ -309,6 +369,7 @@ public class WebGraph
             page.E.RemoveAt(ToIndex);
         } //note that by doing things like this we don't return false if the page to delete isn't found, I think this is okay because the page being deleted or the page never existing is the same thing once the method is finished
     }
+
     // 6 marks
     // Return the average length of the shortest paths from the webpage with
     // given name to each of its hyperlinks
@@ -318,6 +379,7 @@ public class WebGraph
         // PLACEHOLDER
         return 0f;
     }
+
     // 3 marks
     // Print the name and hyperlinks of each webpage
     public void PrintGraph()

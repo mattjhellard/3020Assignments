@@ -418,7 +418,6 @@ public class WebGraph
         Console.WriteLine("!(WebGraph): graph printed, hit enter to return");
         Console.ReadLine();
     }
-
 }
 public class User
 {
@@ -482,7 +481,5 @@ public class User
             webGraph.PrintGraph();
             serverGraph.PrintGraph();
         }
-
     }
-
 }

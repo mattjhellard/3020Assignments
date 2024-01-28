@@ -11,7 +11,6 @@
 - Branches can be merged back into one branch
 - If you have any questions feel free to ask on the discord, but honestly the internet might be a faster better choice depending on how advanced the question is
 ## Suggested git group protocols:
-1. Make sure to pull before making changes, pay attention to pulled changes
-2. Before doing something, check for comments declaring developments in that area
-3. Before doing something major like developing an entire method, push a comment describing what you plan to change in the vicinity of where the changes will occur before making those changes
-4. Consider creating branches for major developments, merging when done
+1. Make sure to pull or at least fetch before making changes to a branch that isn't solely yours, especially before pushing those changes
+2. Create a branch for yourself to work in, preferably just call it your name for maximum clarity, merge it with main/master at the end of sessions or when you've made major additions you want others to see immediately, this will more adequately address conflicts, particularly in VS which has a pretty nice merge conflict handling menu.
+3. If a conflict arises because multiple members have developed the same thing, first check if the implementation is essentially the same, if it is, then whichever version has the best documentation should be kept, if they have equal documentation quality then the member performing the merge should relinguish their implementation, as the other was technically first. If the implementations are significantly different then talk to the other member and mutually decide which is the one that should be kept.

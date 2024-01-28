@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 public class ServerGraph
 {
@@ -79,6 +80,7 @@ public class ServerGraph
             newServer = new WebServer(other);
             // because there are no pre-existing servers if the process gets here, and because the class is constructed with capacity for at least one server, we need not check if we need to first double our capacities
             V[0] = newServer;
+            NumServers++;
         }
         if (FindServer(name) != -1) //checking that desired server name is unique
         { //this should come after adding the first server when starting from 0 servers so that the check can apply to the initial "other" server
@@ -139,17 +141,17 @@ public class ServerGraph
         //creating these separately from check to use their values later
         int nameIndex = FindServer(name);
         int otherIndex = FindServer(other);
-        if(nameIndex == -1 || otherIndex == -1)
+        if (nameIndex == -1 || otherIndex == -1)
         { //if either designated server not found then fail out
             return false;
         }
         //adding every webpage within the designated removal server to the designated assignment server
-        foreach(WebPage page in V[nameIndex].P)
+        foreach (WebPage page in V[nameIndex].P)
         {
             V[otherIndex].P.Add(page);
         }
         //in this loop we both adjust the removee's connections to the other server, AND move the last server's connections to the removee's index
-        for(int i = NumServers-1; i>=0; i--)
+        for (int i = NumServers - 1; i >= 0; i--)
         {
             if (E[i, nameIndex] && i != otherIndex) //we don't want to connect the other server to itself, so we skip this when that would happen
             { //recall that servergraph is undirected so we only have to check one axis but we still have to apply the changes to both
@@ -230,12 +232,32 @@ public class ServerGraph
         // PLACEHOLDER
         return -1;
     }
+
     // 4 marks
     // Print the name and connections of each server as well as
     // the names of the webpages it hosts
     public void PrintGraph()
     {
-
+        foreach (WebServer server in V)
+        {
+            int currServerIndex = FindServer(server.Name); //used to get the index of the current server for finding its connections on the matrix
+            Console.WriteLine("Server: " + server.Name + "\n\tConnections:");
+            for (int i = 0; i < NumServers; i++) //finding all connections to the server on matrix
+            {
+                if (E[i, currServerIndex]) //if a connection is found
+                {
+                    Console.WriteLine("\t-" + V[i].Name);
+                }
+            }
+            Console.WriteLine("\tHosting:");
+            foreach (WebPage page in server.P)
+            {
+                Console.WriteLine("\t-" + page.Name);
+            }
+        }
+        //normally I dislike putting menu type functionality outside main in programs like these, but since the method prints anyway it makes sense to treat it like it has it's own little menu too
+        Console.WriteLine("!(ServerGraph): graph printed, hit enter to return");
+        Console.ReadLine();
     }
 }
 
@@ -384,6 +406,82 @@ public class WebGraph
     // Print the name and hyperlinks of each webpage
     public void PrintGraph()
     {
+        foreach (WebPage page in P)
+        {
+            Console.WriteLine("Webpage: " + page.Name + "\n\tHost: " + page.Server + "\n\tLinks to:");
+            foreach(WebPage link in page.E)
+            {
+                Console.WriteLine("\t-" + link.Name);
+            }
+        }
+        //normally I dislike putting menu type functionality outside main in programs like these, but since the method prints anyway it makes sense to treat it like it has it's own little menu too
+        Console.WriteLine("!(WebGraph): graph printed, hit enter to return");
+        Console.ReadLine();
+    }
+
+}
+public class User
+{
+    public static void Main()
+    {
+        Console.WriteLine("3020 Assignment 1\nby\nBenjamin Macintosh\nMatthew Hellard\nRishit Arora\n\n");
+        ServerGraph serverGraph = new ServerGraph();
+        WebGraph webGraph = new WebGraph();
+        Console.WriteLine("!: server graph and web graph successfully instantiated\n\n");
+        bool run = true;
+        while (run)
+        {
+            Console.WriteLine("Menu:");
+            String input = Console.ReadLine();
+            input = input.ToLower();
+            switch (input)
+            {
+                case "pwg":
+                case "print web":
+                    webGraph.PrintGraph();
+                    break;
+                case "print server":
+                case "psg":
+                    serverGraph.PrintGraph();
+                    break;
+                case "r": //reset
+                case "reset":
+                    serverGraph = new ServerGraph();
+                    webGraph = new WebGraph();
+                    Console.WriteLine("!: web graph and server graph reset");
+                    break;
+                case "b": //canned test procedure / benchmark type thing
+                case "benchmark":
+                case "debug":
+                    Console.WriteLine("!: running test...");
+                    runTest(); //we use methods for more complex procedures so the switch statement stays more readable
+                    Console.WriteLine("!: test complete");
+                    break;
+                case "q": //quit
+                case "quit":
+                case "exit":
+                    run = false;
+                    break;
+                default:
+                    Console.WriteLine("!: unknown input, please try again...");
+                    break;
+            }
+        }
+        void runTest() //created to make a complex test case very easily repeatable
+        {
+            webGraph = new WebGraph();
+            serverGraph = new ServerGraph();
+            serverGraph.AddServer("Toronto SuperServer", "Calgary SuperServer");
+            serverGraph.AddServer("Trent University Durham", "Toronto SuperServer");
+            serverGraph.AddServer("Trent University Peterborough", "Trent University Durham");
+            serverGraph.AddConnection("Trent University Durham", "Calgary SuperServer");
+            serverGraph.PrintGraph();
+            webGraph.AddPage("Loki", "Trent University Peterborough", serverGraph);
+            webGraph.AddPage("myTrent", "Trent University Peterborough", serverGraph);
+            webGraph.AddLink("Loki", "myTrent");
+            webGraph.PrintGraph();
+            serverGraph.PrintGraph();
+        }
 
     }
 

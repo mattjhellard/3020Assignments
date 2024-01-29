@@ -221,9 +221,37 @@ public class ServerGraph
     // Hint: Use a variation of the depth-first search
     public string[] CriticalServers()
     {
-        // PLACEHOLDER
-        return null;
+        if(NumServers == 0)
+        {
+            return null;
+        }
+        List<int> criticalIndices = DepthFirstSearch(0,new List<int>());
+        string[] criticalNames = new string[criticalIndices.Count];
+        for (int i = 0; i < criticalNames.Length; i++)
+        {
+            criticalNames[i] = V[criticalIndices[i]].Name;
+        }
+        return criticalNames;
     }
+
+    //custom private method for doing a depth-first search
+    private List<int> DepthFirstSearch(int currIndex, List<int> visited)
+    {
+        visited.Add(currIndex);
+        //do stuff
+        for(int i = 0; i < NumServers; i++)
+        {
+            if (E[i,currIndex] && !visited.Contains(i))
+            {
+                foreach(int j in DepthFirstSearch(i,visited))
+                {
+                    visited.Add(j);
+                }
+            }
+        }
+        return visited;
+    }
+
     // 6 marks
     // Return the shortest path from one server to another
     // Hint: Use a variation of the breadth-first search
@@ -409,7 +437,7 @@ public class WebGraph
         foreach (WebPage page in P)
         {
             Console.WriteLine("Webpage: " + page.Name + "\n\tHost: " + page.Server + "\n\tLinks to:");
-            foreach(WebPage link in page.E)
+            foreach (WebPage link in page.E)
             {
                 Console.WriteLine("\t-" + link.Name);
             }
@@ -480,6 +508,10 @@ public class User
             webGraph.AddLink("Loki", "myTrent");
             webGraph.PrintGraph();
             serverGraph.PrintGraph();
+            foreach(string name in serverGraph.CriticalServers())
+            {
+                Console.WriteLine(name);
+            }
         }
     }
 }

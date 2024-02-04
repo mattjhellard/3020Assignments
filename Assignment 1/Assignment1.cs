@@ -24,9 +24,9 @@ public class ServerGraph
     public ServerGraph()
     {
         //we want to start with the smallest sizes reasonably possible for an "empty" graph, will automatically grow as needed without user intervention
-        V = new WebServer[1];
+        V = new WebServer[0]; //we initialize this to zero to minimize issues handling V when no servers are added
         E = new bool[1, 1];
-        NumServers = 0; // observe that numServers is currently 0 while the length of V is 1, this discrepancy is why the NumServers data member is necessary
+        NumServers = 0;
     }
 
     // 2 marks
@@ -78,8 +78,8 @@ public class ServerGraph
         if (NumServers == 0) //handling first server add by just creating designated other before moving on
         {
             newServer = new WebServer(other);
-            // because there are no pre-existing servers if the process gets here, and because the class is constructed with capacity for at least one server, we need not check if we need to first double our capacities
-            V[0] = newServer;
+            // because there are no pre-existing servers if the process gets here, we can alter V more liberally
+            V = new WebServer[] {newServer};
             NumServers++;
         }
         if (FindServer(name) != -1) //checking that desired server name is unique
@@ -310,6 +310,10 @@ public class ServerGraph
     {
         foreach (WebServer server in V)
         {
+            if(server == null)
+            {
+                return;
+            }
             int currServerIndex = FindServer(server.Name); //used to get the index of the current server for finding its connections on the matrix
             Console.WriteLine("Server: " + server.Name + "\n\tConnections:");
             for (int i = 0; i < NumServers; i++) //finding all connections to the server on matrix
@@ -319,10 +323,10 @@ public class ServerGraph
                     Console.WriteLine("\t-" + V[i].Name);
                 }
             }
-            Console.WriteLine("\tHosting:");
+            Console.WriteLine("\t\tHosting:");
             foreach (WebPage page in server.P)
             {
-                Console.WriteLine("\t-" + page.Name);
+                Console.WriteLine("\t\t-" + page.Name);
             }
         }
         //normally I dislike putting menu type functionality outside main in programs like these, but since the method prints anyway it makes sense to treat it like it has it's own little menu too
@@ -475,16 +479,16 @@ public class WebGraph
         }
         int numPaths = P[pageIndex].E.Count; //we do not need to calculate numPaths ourselves as the list storing hyperlinks did that for us automatically 
         int sumPaths = 0; //there's potentially a better name for this variable but this is good enough and more importantly it rhymes with its sibling variable
-        foreach(WebPage hyperlink in P[pageIndex].E) 
+        foreach (WebPage hyperlink in P[pageIndex].E)
         {
             sumPaths += S.ShortestPath(P[pageIndex].Server, hyperlink.Server);
         } //adding shortest path from page's host server to hyperlink's host server (an int)
-        if(numPaths > 0)
+        if (numPaths > 0)
         { //avoiding divide by zero and handling no hyperlinks case at same time
             return sumPaths / numPaths;
         }
         else //if there are no hyperlinks on the page
-        { 
+        {
             // it's a bit subjective what the average shortest paths should be when there's no paths in the first place.
             // I think an average distance of 0 feels pretty intuitive, but you could argue it should fail out instead because
             // in that case the operation isn't valid (whether it's valid or not is also subjective though)
@@ -513,50 +517,180 @@ public class User
 {
     public static void Main()
     {
-        Console.WriteLine("3020 Assignment 1\nby\nBenjamin Macintosh\nMatthew Hellard\nRishit Arora\n\n");
+        Console.WriteLine("3020 Assignment 1\nby\nBenjamin Macintosh\nMatthew Hellard\nRishit Arora\n");
         ServerGraph serverGraph = new ServerGraph();
         WebGraph webGraph = new WebGraph();
-        Console.WriteLine("!: server graph and web graph successfully instantiated\n\n");
+        Console.WriteLine("input (help) for commands listing\n");
         bool run = true;
         while (run)
         {
             Console.WriteLine("Menu:");
-            String input = Console.ReadLine();
-            input = input.ToLower();
+            String input = Console.ReadLine().ToLower();
             switch (input)
             {
-                case "pwg":
-                case "print web":
-                    webGraph.PrintGraph();
+                case "as":
+                case "add server":
+                    Console.Write("\n!: Input new server:");
+                    input = Console.ReadLine();
+                    Console.Write("\n!: Input server to connect to:");
+                    if (!serverGraph.AddServer(input, Console.ReadLine()))
+                    {
+                        Console.WriteLine("!: Adding new server failed");
+                    }
                     break;
-                case "print server":
+                case "asc":
+                case "add server connection":
+                    Console.Write("\n!: Input first server:");
+                    input = Console.ReadLine();
+                    Console.WriteLine("\n!: Input second server:");
+                    if (!serverGraph.AddConnection(input, Console.ReadLine()))
+                    {
+                        Console.WriteLine("!: Adding server connection failed");
+                    }
+                    break;
+                case "rms":
+                case "remove server":
+                    Console.Write("\n!: Input server to remove:");
+                    input = Console.ReadLine();
+                    Console.Write("\n!: Input server to reroute to:");
+                    if (!serverGraph.RemoveServer(input, Console.ReadLine()))
+                    {
+                        Console.WriteLine("!: Failed to remove server");
+                    }
+                    break;
+                case "pcs":
+                case "print critical servers":
+                    string[] criticalServers = serverGraph.CriticalServers();
+                    if (criticalServers == null)
+                    {
+                        Console.WriteLine("!: No critical servers found");
+                    }
+                    else
+                    {
+                        foreach (string criticalServer in criticalServers)
+                        {
+                            Console.WriteLine("\t!:" + criticalServer);
+                        }
+                    }
+                    break;
+                case "psp":
+                case "print shortest path":
+                    Console.Write("\n!: Input starting server:");
+                    input = Console.ReadLine();
+                    Console.Write("\n!: Input destination server:");
+                    int shortestPath = serverGraph.ShortestPath(input, Console.ReadLine());
+                    if (shortestPath != -1)
+                    {
+                        Console.WriteLine("!: Shortest path is " + shortestPath);
+                    }
+                    else
+                    {
+                        Console.WriteLine("!: Could not find shortest path");
+                    }
+                    break;
+                case "print server graph":
                 case "psg":
                     serverGraph.PrintGraph();
                     break;
-                case "r": //reset
-                case "reset":
-                    serverGraph = new ServerGraph();
-                    webGraph = new WebGraph();
-                    Console.WriteLine("!: web graph and server graph reset");
+                case "add webpage":
+                case "aw":
+                    Console.Write("!: Input host server:");
+                    input = Console.ReadLine();
+                    Console.Write("\n!: Input webpage name:");
+                    if (!webGraph.AddPage(Console.ReadLine(), input, serverGraph))
+                    {
+                        Console.WriteLine("Failed to add webpage");
+                    }
+                    break;
+                case "add hyperlink":
+                case "awc":
+                case "add webpage connection":
+                    Console.Write("!: Input source page:");
+                    input = Console.ReadLine();
+                    Console.Write("\n!: Input target page:");
+                    if(!webGraph.AddLink(input, Console.ReadLine()))
+                    {
+                        Console.WriteLine("Failed to add hyperlink");
+                    }
+                    break;
+                case "remove hyperlink":
+                case "remove webpage connection":
+                case "rmwc":
+                    Console.Write("!: Input page:");
+                    input = Console.ReadLine();
+                    Console.Write("\n!: Input hyperlink to remove:");
+                    if(!webGraph.RemoveLink(input, Console.ReadLine()))
+                    {
+                        Console.WriteLine("Failed to remove hyperlink:");
+                    }
+                    break;
+                case "remove webpage":
+                case "rmw":
+                    Console.Write("\n!: Input webpage to remove:");
+                    input = Console.ReadLine();
+                    if(!webGraph.RemovePage(input, serverGraph))
+                    {
+                        Console.WriteLine("Failed to remove webpage");
+                    }
+                    break;
+                case "asp":
+                case "average shortest paths":
+                    Console.Write("!: Input webpage to measure:");
+                    input = Console.ReadLine();
+                    float asp = webGraph.AvgShortestPaths(input, serverGraph);
+                    if(asp != -1f)
+                    {
+                        Console.WriteLine("!: Average shortest paths: " + asp);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to get average shortest paths");
+                    }
+                    break;
+                case "pwg":
+                case "print web graph":
+                    webGraph.PrintGraph();
                     break;
                 case "b": //canned test procedure / benchmark type thing
                 case "benchmark":
                 case "debug":
-                    Console.WriteLine("!: running test...");
-                    runTest(); //we use methods for more complex procedures so the switch statement stays more readable
-                    Console.WriteLine("!: test complete");
+                    runTest0(); //we use methods for particularly lengthy procedures so the switch statement stays more readable, I am aware this approach didn't help much on that front
                     break;
-                case "q": //quit
+                case "r":
+                case "reset":
+                    serverGraph = new ServerGraph();
+                    webGraph = new WebGraph();
+                    break;
+                case "q":
                 case "quit":
                 case "exit":
                     run = false;
                     break;
+                case "help":
+                case "h":
+                    Console.WriteLine(
+                    "!: Help (h)\n" + // implemented
+                    "Print web graph (pwg)\n" + //implemented
+                    "Print server graph (psg)\n" + //implemented
+                    "Add server (as)\n" + // implemented
+                    "Add server connection (asc)\n" + //implemented
+                    "Print critical servers (pcs)" + //implemented
+                    "Print shortest path (psp)\n" + //implemented
+                    "Remove server (rms)\n" + //implemented
+                    "Add webpage (aw)\n" + //implemented
+                    "Add link from webpage (awc)\n" + //implemented
+                    "Remove link from page (rmwc)\n" + //implemented
+                    "Remove webpage (rmw)\n" + //implemented
+                    "Average shortest paths (asp)\n" + //implemented
+                    "Reset graphs (r)\n" + //implemented
+                    "Quit (q)\n"); //implemented
+                    break;
                 default:
-                    Console.WriteLine("!: unknown input, please try again...");
+                    Console.WriteLine("!: unknown input, use (help) for list of valid commands");
                     break;
             }
         }
-        void runTest() //created to make a complex test case very easily repeatable
+        void runTest0() //created to make a complex test case very easily repeatable
         {
             webGraph = new WebGraph();
             serverGraph = new ServerGraph();

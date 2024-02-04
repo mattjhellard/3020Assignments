@@ -221,11 +221,11 @@ public class ServerGraph
     // Hint: Use a variation of the depth-first search
     public string[] CriticalServers()
     {
-        if(NumServers == 0)
+        if (NumServers == 0)
         {
             return null;
         }
-        List<int> criticalIndices = DepthFirstSearch(0,new List<int>());
+        List<int> criticalIndices = DepthFirstSearch(0, new List<int>());
         string[] criticalNames = new string[criticalIndices.Count];
         for (int i = 0; i < criticalNames.Length; i++)
         {
@@ -239,11 +239,11 @@ public class ServerGraph
     {
         visited.Add(currIndex);
         //do stuff
-        for(int i = 0; i < NumServers; i++)
+        for (int i = 0; i < NumServers; i++)
         {
-            if (E[i,currIndex] && !visited.Contains(i))
+            if (E[i, currIndex] && !visited.Contains(i))
             {
-                foreach(int j in DepthFirstSearch(i,visited))
+                foreach (int j in DepthFirstSearch(i, visited))
                 {
                     visited.Add(j);
                 }
@@ -257,8 +257,38 @@ public class ServerGraph
     // Hint: Use a variation of the breadth-first search
     public int ShortestPath(string from, string to)
     {
-        // PLACEHOLDER
-        return -1;
+        //these two declared so their values can be used in BFS algorithm, which utilizes indices to identify vertices rather than names
+        int fromIndex = FindServer(from);
+        int toIndex = FindServer(to);
+        if (fromIndex == -1 || toIndex == -1) //if either the source or destination don't exist we can fail out right away
+        {
+            return -1;
+        }
+
+        // Effectively the start of BFS
+        Queue<int> Queue = new Queue<int>();
+        List<int> Visited = new List<int> { fromIndex };
+        List<int> Distances = new List<int> { 0 }; //nontraditional datamember of bfs algo, 
+        Queue.Enqueue(fromIndex);
+        while (Queue.Count > 0)
+        {
+            int next = Queue.Dequeue();
+            int currDistance = Distances[Visited.IndexOf(next)];
+            if (next == toIndex) 
+            {
+                return currDistance;
+            }
+            for (int i = 0; i < NumServers; i++)
+            {
+                if (E[i, next] && !Visited.Contains(i))
+                {
+                    Visited.Add(i);
+                    Distances.Add(currDistance+1);
+                    Queue.Enqueue(i);
+                }
+            }
+        }
+        return -1; // this should never happen but we should still handle the possibility and the IDE/compiler will complain if you don't anyway
     }
 
     // 4 marks
@@ -508,10 +538,7 @@ public class User
             webGraph.AddLink("Loki", "myTrent");
             webGraph.PrintGraph();
             serverGraph.PrintGraph();
-            foreach(string name in serverGraph.CriticalServers())
-            {
-                Console.WriteLine(name);
-            }
+            Console.WriteLine(serverGraph.ShortestPath("Toronto SuperServer","Trent University Peterborough"));
         }
     }
 }

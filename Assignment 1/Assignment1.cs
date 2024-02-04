@@ -468,8 +468,28 @@ public class WebGraph
     // Hint: Use the method ShortestPath in the class ServerGraph
     public float AvgShortestPaths(string name, ServerGraph S)
     {
-        // PLACEHOLDER
-        return 0f;
+        int pageIndex = FindPage(name);
+        if (pageIndex == -1)
+        { //if the page doesn't exist we want to fail out, note that we've chosen not to fail out if the page has no hyperlinks (we return 0 instead)
+            return -1f;
+        }
+        int numPaths = P[pageIndex].E.Count; //we do not need to calculate numPaths ourselves as the list storing hyperlinks did that for us automatically 
+        int sumPaths = 0; //there's potentially a better name for this variable but this is good enough and more importantly it rhymes with its sibling variable
+        foreach(WebPage hyperlink in P[pageIndex].E) 
+        {
+            sumPaths += S.ShortestPath(P[pageIndex].Server, hyperlink.Server);
+        } //adding shortest path from page's host server to hyperlink's host server (an int)
+        if(numPaths > 0)
+        { //avoiding divide by zero and handling no hyperlinks case at same time
+            return sumPaths / numPaths;
+        }
+        else //if there are no hyperlinks on the page
+        { 
+            // it's a bit subjective what the average shortest paths should be when there's no paths in the first place.
+            // I think an average distance of 0 feels pretty intuitive, but you could argue it should fail out instead because
+            // in that case the operation isn't valid (whether it's valid or not is also subjective though)
+            return 0f;
+        }
     }
 
     // 3 marks

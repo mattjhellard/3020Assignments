@@ -260,32 +260,44 @@ public class ServerGraph
         //these two declared so their values can be used in BFS algorithm, which utilizes indices to identify vertices rather than names
         int fromIndex = FindServer(from);
         int toIndex = FindServer(to);
-        if (fromIndex == -1 || toIndex == -1) //if either the source or destination don't exist we can fail out right away
-        {
+        if (fromIndex == -1 || toIndex == -1)
+        {//if either the source or destination don't exist we can fail out right away
             return -1;
         }
-
         // Effectively the start of BFS
-        Queue<int> Queue = new Queue<int>();
-        List<int> Visited = new List<int> { fromIndex };
-        List<int> Distances = new List<int> { 0 }; //nontraditional datamember of bfs algo, 
+        Queue<int> Queue = new Queue<int>(); //tracks unprocessed but visited vertices
+        List<int> Visited = new List<int> { fromIndex }; //tracks visited vertices, initialized with starting index
         Queue.Enqueue(fromIndex);
+        //The following datamembers are what separates this BFS from the traditional algo, not that this variation is that rare either
+        int remainderAtDepth = 1;
+        //^ in order to know when to increment depth (distance from start) we must know when all
+        //vertices at the current depth have been processed, because we always start with one vertex,
+        //we know the number of vertices at depth 0 is 1, we decrement whenever we pop a vertex
+        int currDepth = 0;
+        //  start of standard BFS
         while (Queue.Count > 0)
         {
-            int next = Queue.Dequeue();
-            int currDistance = Distances[Visited.IndexOf(next)];
-            if (next == toIndex) 
+            int nextIndex = Queue.Dequeue();
+            if (nextIndex == toIndex)
             {
-                return currDistance;
+                return currDepth;
             }
             for (int i = 0; i < NumServers; i++)
             {
-                if (E[i, next] && !Visited.Contains(i))
+                if (E[i, nextIndex] && !Visited.Contains(i))
                 {
                     Visited.Add(i);
-                    Distances.Add(currDistance+1);
                     Queue.Enqueue(i);
                 }
+            }
+            // end of standard BFS
+            if (--remainderAtDepth == 0)
+            { //when remainderAtDepth hits 0, we've finished processing all vertices at the current depth
+                currDepth++;
+                remainderAtDepth = Queue.Count;
+                //^ the number of vertices at the next depth will always equal the size of the queue at this point,
+                //as each vertex from the previous depth has added all it's unvisited neighbors and been removed from
+                //the queue
             }
         }
         return -1; // this should never happen but we should still handle the possibility and the IDE/compiler will complain if you don't anyway
@@ -538,7 +550,7 @@ public class User
             webGraph.AddLink("Loki", "myTrent");
             webGraph.PrintGraph();
             serverGraph.PrintGraph();
-            Console.WriteLine(serverGraph.ShortestPath("Toronto SuperServer","Trent University Peterborough"));
+            Console.WriteLine(serverGraph.ShortestPath("Toronto SuperServer", "Trent University Peterborough"));
         }
     }
 }

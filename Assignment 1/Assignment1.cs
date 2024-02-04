@@ -75,8 +75,8 @@ public class ServerGraph
     public bool AddServer(string name, string other)
     {
         WebServer newServer; //we could avoid using newServer like this by wrapping everything after this if in an else but why do that? Isn't this nice as is? Certainly nicer than gratuitous wrapping in my opinion
-        if (NumServers == 0) //handling first server add by just creating designated other before moving on
-        {
+        if (NumServers == 0) 
+        {//handling first server add by just creating designated other before moving on
             newServer = new WebServer(other);
             // because there are no pre-existing servers if the process gets here, we can alter V more liberally
             V = new WebServer[] {newServer};
@@ -502,10 +502,10 @@ public class WebGraph
     {
         foreach (WebPage page in P)
         {
-            Console.WriteLine("Webpage: " + page.Name + "\n\tHost: " + page.Server + "\n\tLinks to:");
+            Console.WriteLine("Webpage: " + page.Name + "\n\tHost: " + page.Server + "\n\t\tLinks to:");
             foreach (WebPage link in page.E)
             {
-                Console.WriteLine("\t-" + link.Name);
+                Console.WriteLine("\t\t-" + link.Name);
             }
         }
         //normally I dislike putting menu type functionality outside main in programs like these, but since the method prints anyway it makes sense to treat it like it has it's own little menu too
@@ -654,6 +654,7 @@ public class User
                 case "b": //canned test procedure / benchmark type thing
                 case "benchmark":
                 case "debug":
+                case "test0":
                     runTest0(); //we use methods for particularly lengthy procedures so the switch statement stays more readable, I am aware this approach didn't help much on that front
                     break;
                 case "r":
@@ -698,13 +699,16 @@ public class User
             serverGraph.AddServer("Trent University Durham", "Toronto SuperServer");
             serverGraph.AddServer("Trent University Peterborough", "Trent University Durham");
             serverGraph.AddConnection("Trent University Durham", "Calgary SuperServer");
-            serverGraph.PrintGraph();
             webGraph.AddPage("Loki", "Trent University Peterborough", serverGraph);
             webGraph.AddPage("myTrent", "Trent University Peterborough", serverGraph);
             webGraph.AddLink("Loki", "myTrent");
-            webGraph.PrintGraph();
+            serverGraph.AddServer("MS DataCenter Quebec City", "Toronto SuperServer");
+            webGraph.AddPage("Blackboard", "MS DataCenter Quebec City",serverGraph);
+            webGraph.AddLink("Blackboard", "Loki");
+            webGraph.AddPage("MS OneDrive", "MS DataCenter Quebec City", serverGraph);
             serverGraph.PrintGraph();
-            Console.WriteLine(serverGraph.ShortestPath("Toronto SuperServer", "Trent University Peterborough"));
+            serverGraph.RemoveServer("Toronto SuperServer", "Calgary SuperServer");
+            Console.WriteLine("Shortest path from TSS to Trent: "+serverGraph.ShortestPath("Toronto SuperServer", "Trent University Peterborough"));
         }
     }
 }

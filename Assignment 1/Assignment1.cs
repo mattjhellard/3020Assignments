@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.Pipes;
+using System.Runtime.CompilerServices;
 
 public class ServerGraph
 {
@@ -219,39 +221,100 @@ public class ServerGraph
     // Return all servers that would disconnect the server graph into
     // two or more disjoint graphs if ever one of them would go down
     // Hint: Use a variation of the depth-first search
+    //Articulatipn point methods taken from https://www.geeksforgeeks.org/articulation-points-or-cut-vertices-in-a-graph/amp/ after Dr. Brian Patrick mentioned them in class
     public string[] CriticalServers()
     {
-        if (NumServers == 0)
+        string[] critServers = new String[NumServers];
+        //int i = 0;
+        int NIL = -1;
+        int time = 0;
+        AP();
+        // PLACEHOLDER
+        //return null;
+        void APUtil(int u, bool[] visited, int[] disc, int[] low, int[] parent, bool[] ap)
         {
-            return null;
-        }
-        List<int> criticalIndices = DepthFirstSearch(0, new List<int>());
-        string[] criticalNames = new string[criticalIndices.Count];
-        for (int i = 0; i < criticalNames.Length; i++)
-        {
-            criticalNames[i] = V[criticalIndices[i]].Name;
-        }
-        return criticalNames;
-    }
+            //count of children in DFS Tree
+            int children = 0;
+            //int count = 0;
+            int i = 0;
+            //mark the current node as visited
+            visited[u] = true;
 
-    //custom private method for doing a depth-first search
-    private List<int> DepthFirstSearch(int currIndex, List<int> visited)
-    {
-        visited.Add(currIndex);
-        //do stuff
-        for (int i = 0; i < NumServers; i++)
-        {
-            if (E[i, currIndex] && !visited.Contains(i))
+            //Initialize discovery time and low value
+            disc[u] = low[u] = ++time;
+
+            //go through all vertices adjacent to this
+            foreach (WebServer server in V)
             {
-                foreach (int j in DepthFirstSearch(i, visited))
-                {
-                    visited.Add(j);
-                }
-            }
-        }
-        return visited;
-    }
+                int adjU = i; // adjU is current adjacent of u
 
+                // If adjacent is not visited yet, then make it a child of u in DFS tree and recur for it
+                if (!visited[adjU])
+                {
+                    children++;
+                    parent[adjU] = u;
+
+                    APUtil(adjU, visited, disc, low, parent, ap);
+
+                    // Check if the subtree rooted with v has a connection to one of the ancestors of u
+                    //low[u] = Math.Min(low[u], low[adjU]);
+                    //I cant get these to actually assign anything as the crit point
+                    // u is an articulation point in following cases (1) u is root of DFS tree and has two or more children.
+                    if (parent[adjU] == NIL && children >= 1)
+                    {
+                        ap[u] = true;
+                    }
+                    //I cant get these to actually assign anything as the crit point
+                    // (2) If u is not root and low value of one of its child is more than discovery value of u.
+                    if (E[u, adjU]== true && parent[u]!=NIL && low[adjU] >= disc[u])
+                    {
+                        ap[u] = true;
+                    }
+                }
+                // Update low value of u for parent function calls.
+                else if (adjU != parent[u])
+                {
+                    low[u] = Math.Min(low[u], disc[adjU]);
+                }
+                if (i < NumServers - 1)
+                    i++;
+            }
+
+        }
+        //function to do DFS traversal through the graph
+        void AP()
+        {
+            // keeps track of visited vertices
+            bool[] visited = new bool[NumServers];
+            //stores discovery times of visited vertices
+            int[] disc = new int[NumServers];
+            // stores vertex discovered with minimum discovery time
+            int[] low = new int[NumServers];
+            // stores the parent of vertex u
+            int[] parent = new int[NumServers];
+            bool[] ap = new bool[NumServers]; //Stores articulation points aka critical servers
+
+            //Initialize parent and visited, and
+            //ap  (articulation point) arrays
+            for (int y = 0; y < NumServers; y++)
+            {
+                parent[y] = NIL;
+                visited[y] = false;
+                ap[y] = false;
+            }
+            //call recursive helper function to find articulation points in DFS tree rooted with vertext 'i'
+            for (int y = 0; y < NumServers; y++)
+                if (visited[y] == false)
+                    APUtil(y, visited, disc, low, parent, ap);
+
+            //Now ap[] contains articulation points, we can print it
+            for (int y = 0; y < NumServers; y++)
+                if (ap[y] == true)
+                    critServers[y] = V[y].Name;
+
+        }
+        return critServers;
+    }
     // 6 marks
     // Return the shortest path from one server to another
     // Hint: Use a variation of the breadth-first search
@@ -522,6 +585,7 @@ public class User
         WebGraph webGraph = new WebGraph();
         Console.WriteLine("input (help) for commands listing\n");
         bool run = true;
+        //int g = 0;
         while (run)
         {
             Console.WriteLine("Menu:");

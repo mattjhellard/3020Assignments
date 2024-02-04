@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO.Pipes;
-using System.Runtime.CompilerServices;
 
 public class ServerGraph
 {
@@ -77,11 +75,11 @@ public class ServerGraph
     public bool AddServer(string name, string other)
     {
         WebServer newServer; //we could avoid using newServer like this by wrapping everything after this if in an else but why do that? Isn't this nice as is? Certainly nicer than gratuitous wrapping in my opinion
-        if (NumServers == 0) 
+        if (NumServers == 0)
         {//handling first server add by just creating designated other before moving on
             newServer = new WebServer(other);
             // because there are no pre-existing servers if the process gets here, we can alter V more liberally
-            V = new WebServer[] {newServer};
+            V = new WebServer[] { newServer };
             NumServers++;
         }
         if (FindServer(name) != -1) //checking that desired server name is unique
@@ -224,97 +222,47 @@ public class ServerGraph
     //Articulatipn point methods taken from https://www.geeksforgeeks.org/articulation-points-or-cut-vertices-in-a-graph/amp/ after Dr. Brian Patrick mentioned them in class
     public string[] CriticalServers()
     {
-        string[] critServers = new String[NumServers];
-        //int i = 0;
-        int NIL = -1;
-        int time = 0;
-        AP();
-        // PLACEHOLDER
-        //return null;
-        void APUtil(int u, bool[] visited, int[] disc, int[] low, int[] parent, bool[] ap)
+        if (NumServers < 3)
         {
-            //count of children in DFS Tree
-            int children = 0;
-            //int count = 0;
-            int i = 0;
-            //mark the current node as visited
-            visited[u] = true;
-
-            //Initialize discovery time and low value
-            disc[u] = low[u] = ++time;
-
-            //go through all vertices adjacent to this
-            foreach (WebServer server in V)
-            {
-                int adjU = i; // adjU is current adjacent of u
-
-                // If adjacent is not visited yet, then make it a child of u in DFS tree and recur for it
-                if (!visited[adjU])
-                {
-                    children++;
-                    parent[adjU] = u;
-
-                    APUtil(adjU, visited, disc, low, parent, ap);
-
-                    // Check if the subtree rooted with v has a connection to one of the ancestors of u
-                    //low[u] = Math.Min(low[u], low[adjU]);
-                    //I cant get these to actually assign anything as the crit point
-                    // u is an articulation point in following cases (1) u is root of DFS tree and has two or more children.
-                    if (parent[adjU] == NIL && children >= 1)
-                    {
-                        ap[u] = true;
-                    }
-                    //I cant get these to actually assign anything as the crit point
-                    // (2) If u is not root and low value of one of its child is more than discovery value of u.
-                    if (E[u, adjU]== true && parent[u]!=NIL && low[adjU] >= disc[u])
-                    {
-                        ap[u] = true;
-                    }
-                }
-                // Update low value of u for parent function calls.
-                else if (adjU != parent[u])
-                {
-                    low[u] = Math.Min(low[u], disc[adjU]);
-                }
-                if (i < NumServers - 1)
-                    i++;
-            }
-
+            return null;
         }
-        //function to do DFS traversal through the graph
-        void AP()
+        List<string> criticalNames = new List<string>();
+        int startIndex;
+        int currCheckee;
+        List<int> visited = new List<int>();
+        for(int i = 0; i<NumServers; i++)
         {
-            // keeps track of visited vertices
-            bool[] visited = new bool[NumServers];
-            //stores discovery times of visited vertices
-            int[] disc = new int[NumServers];
-            // stores vertex discovered with minimum discovery time
-            int[] low = new int[NumServers];
-            // stores the parent of vertex u
-            int[] parent = new int[NumServers];
-            bool[] ap = new bool[NumServers]; //Stores articulation points aka critical servers
-
-            //Initialize parent and visited, and
-            //ap  (articulation point) arrays
-            for (int y = 0; y < NumServers; y++)
+            currCheckee = FindServer(V[i].Name);
+            if (currCheckee == 0)
             {
-                parent[y] = NIL;
-                visited[y] = false;
-                ap[y] = false;
+                startIndex = 1;
             }
-            //call recursive helper function to find articulation points in DFS tree rooted with vertext 'i'
-            for (int y = 0; y < NumServers; y++)
-                if (visited[y] == false)
-                    APUtil(y, visited, disc, low, parent, ap);
-
-            //Now ap[] contains articulation points, we can print it
-            for (int y = 0; y < NumServers; y++)
-                if (ap[y] == true)
-                    critServers[y] = V[y].Name;
-
+            else
+            {
+                startIndex = 0;
+            }
+            ModifiedDFS(currCheckee, startIndex);
+            if(visited.Count < NumServers - 1)
+            {
+                criticalNames.Add(V[i].Name);
+            }
+            visited.Clear();
         }
-        return critServers;
+        return criticalNames.ToArray();
+
+        void ModifiedDFS(int disallowed, int currIndex)
+        {
+            visited.Add(currIndex);
+            for (int i = 0; i < NumServers; i++)
+            {
+                if (E[i,currIndex] && !visited.Contains(i) && i != disallowed) 
+                {
+                    ModifiedDFS(disallowed, i);
+                }
+            }
+        }
     }
+
     // 6 marks
     // Return the shortest path from one server to another
     // Hint: Use a variation of the breadth-first search
@@ -373,7 +321,7 @@ public class ServerGraph
     {
         foreach (WebServer server in V)
         {
-            if(server == null)
+            if (server == null)
             {
                 return;
             }
@@ -672,7 +620,7 @@ public class User
                     Console.Write("!: Input source page:");
                     input = Console.ReadLine();
                     Console.Write("\n!: Input target page:");
-                    if(!webGraph.AddLink(input, Console.ReadLine()))
+                    if (!webGraph.AddLink(input, Console.ReadLine()))
                     {
                         Console.WriteLine("Failed to add hyperlink");
                     }
@@ -683,7 +631,7 @@ public class User
                     Console.Write("!: Input page:");
                     input = Console.ReadLine();
                     Console.Write("\n!: Input hyperlink to remove:");
-                    if(!webGraph.RemoveLink(input, Console.ReadLine()))
+                    if (!webGraph.RemoveLink(input, Console.ReadLine()))
                     {
                         Console.WriteLine("Failed to remove hyperlink:");
                     }
@@ -692,7 +640,7 @@ public class User
                 case "rmw":
                     Console.Write("\n!: Input webpage to remove:");
                     input = Console.ReadLine();
-                    if(!webGraph.RemovePage(input, serverGraph))
+                    if (!webGraph.RemovePage(input, serverGraph))
                     {
                         Console.WriteLine("Failed to remove webpage");
                     }
@@ -702,7 +650,7 @@ public class User
                     Console.Write("!: Input webpage to measure:");
                     input = Console.ReadLine();
                     float asp = webGraph.AvgShortestPaths(input, serverGraph);
-                    if(asp != -1f)
+                    if (asp != -1f)
                     {
                         Console.WriteLine("!: Average shortest paths: " + asp);
                     }
@@ -739,7 +687,7 @@ public class User
                     "Print server graph (psg)\n" + //implemented
                     "Add server (as)\n" + // implemented
                     "Add server connection (asc)\n" + //implemented
-                    "Print critical servers (pcs)" + //implemented
+                    "Print critical servers (pcs)\n" + //implemented
                     "Print shortest path (psp)\n" + //implemented
                     "Remove server (rms)\n" + //implemented
                     "Add webpage (aw)\n" + //implemented
@@ -767,12 +715,16 @@ public class User
             webGraph.AddPage("myTrent", "Trent University Peterborough", serverGraph);
             webGraph.AddLink("Loki", "myTrent");
             serverGraph.AddServer("MS DataCenter Quebec City", "Toronto SuperServer");
-            webGraph.AddPage("Blackboard", "MS DataCenter Quebec City",serverGraph);
+            webGraph.AddPage("Blackboard", "MS DataCenter Quebec City", serverGraph);
             webGraph.AddLink("Blackboard", "Loki");
             webGraph.AddPage("MS OneDrive", "MS DataCenter Quebec City", serverGraph);
             serverGraph.PrintGraph();
-            serverGraph.RemoveServer("Toronto SuperServer", "Calgary SuperServer");
-            Console.WriteLine("Shortest path from TSS to Trent: "+serverGraph.ShortestPath("Toronto SuperServer", "Trent University Peterborough"));
+            serverGraph.RemoveServer("Calgary SuperServer", "Toronto SuperServer");
+            Console.WriteLine("Shortest path from TSS to Trent: " + serverGraph.ShortestPath("Toronto SuperServer", "Trent University Peterborough"));
+            foreach (string criticalServer in serverGraph.CriticalServers())
+            {
+                Console.WriteLine("Critical Server: " + criticalServer);
+            }
         }
     }
 }

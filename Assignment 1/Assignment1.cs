@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.Pipes;
+using System.Runtime.CompilerServices;
 
 public class ServerGraph
 {
@@ -24,7 +26,7 @@ public class ServerGraph
     public ServerGraph()
     {
         //we want to start with the smallest sizes reasonably possible for an "empty" graph, will automatically grow as needed without user intervention
-        V = new WebServer[1];
+        V = new WebServer[0];
         E = new bool[1, 1];
         NumServers = 0; // observe that numServers is currently 0 while the length of V is 1, this discrepancy is why the NumServers data member is necessary
     }
@@ -219,10 +221,99 @@ public class ServerGraph
     // Return all servers that would disconnect the server graph into
     // two or more disjoint graphs if ever one of them would go down
     // Hint: Use a variation of the depth-first search
+    //Articulatipn point methods taken from https://www.geeksforgeeks.org/articulation-points-or-cut-vertices-in-a-graph/amp/ after Dr. Brian Patrick mentioned them in class
     public string[] CriticalServers()
     {
+        string[] critServers = new String[NumServers];
+        //int i = 0;
+        int NIL = -1;
+        int time = 0;
+        AP();
         // PLACEHOLDER
-        return null;
+        //return null;
+        void APUtil(int u, bool[] visited, int[] disc, int[] low, int[] parent, bool[] ap)
+        {
+            //count of children in DFS Tree
+            int children = 0;
+            //int count = 0;
+            int i = 0;
+            //mark the current node as visited
+            visited[u] = true;
+
+            //Initialize discovery time and low value
+            disc[u] = low[u] = ++time;
+
+            //go through all vertices adjacent to this
+            foreach (WebServer server in V)
+            {
+                int adjU = i; // adjU is current adjacent of u
+
+                // If adjacent is not visited yet, then make it a child of u in DFS tree and recur for it
+                if (!visited[adjU])
+                {
+                    children++;
+                    parent[adjU] = u;
+
+                    APUtil(adjU, visited, disc, low, parent, ap);
+
+                    // Check if the subtree rooted with v has a connection to one of the ancestors of u
+                    //low[u] = Math.Min(low[u], low[adjU]);
+                    //I cant get these to actually assign anything as the crit point
+                    // u is an articulation point in following cases (1) u is root of DFS tree and has two or more children.
+                    if (parent[adjU] == NIL && children >= 1)
+                    {
+                        ap[u] = true;
+                    }
+                    //I cant get these to actually assign anything as the crit point
+                    // (2) If u is not root and low value of one of its child is more than discovery value of u.
+                    if (E[u, adjU]== true && parent[u]!=NIL && low[adjU] >= disc[u])
+                    {
+                        ap[u] = true;
+                    }
+                }
+                // Update low value of u for parent function calls.
+                else if (adjU != parent[u])
+                {
+                    low[u] = Math.Min(low[u], disc[adjU]);
+                }
+                if (i < NumServers - 1)
+                    i++;
+            }
+
+        }
+        //function to do DFS traversal through the graph
+        void AP()
+        {
+            // keeps track of visited vertices
+            bool[] visited = new bool[NumServers];
+            //stores discovery times of visited vertices
+            int[] disc = new int[NumServers];
+            // stores vertex discovered with minimum discovery time
+            int[] low = new int[NumServers];
+            // stores the parent of vertex u
+            int[] parent = new int[NumServers];
+            bool[] ap = new bool[NumServers]; //Stores articulation points aka critical servers
+
+            //Initialize parent and visited, and
+            //ap  (articulation point) arrays
+            for (int y = 0; y < NumServers; y++)
+            {
+                parent[y] = NIL;
+                visited[y] = false;
+                ap[y] = false;
+            }
+            //call recursive helper function to find articulation points in DFS tree rooted with vertext 'i'
+            for (int y = 0; y < NumServers; y++)
+                if (visited[y] == false)
+                    APUtil(y, visited, disc, low, parent, ap);
+
+            //Now ap[] contains articulation points, we can print it
+            for (int y = 0; y < NumServers; y++)
+                if (ap[y] == true)
+                    critServers[y] = V[y].Name;
+
+        }
+        return critServers;
     }
     // 6 marks
     // Return the shortest path from one server to another
@@ -230,7 +321,51 @@ public class ServerGraph
     public int ShortestPath(string from, string to)
     {
         // PLACEHOLDER
-        return -1;
+        //return -1;
+        //these two declared so their values can be used in BFS algorithm, which utilizes indices to identify vertices rather than names
+        int fromIndex = FindServer(from);
+        int toIndex = FindServer(to);
+        if (fromIndex == -1 || toIndex == -1)
+        {//if either the source or destination don't exist we can fail out right away
+            return -1;
+        }
+        // Effectively the start of BFS
+        Queue<int> Queue = new Queue<int>(); //tracks unprocessed but visited vertices
+        List<int> Visited = new List<int> { fromIndex }; //tracks visited vertices, initialized with starting index
+        Queue.Enqueue(fromIndex);
+        //The following datamembers are what separates this BFS from the traditional algo, not that this variation is that rare either
+        int remainderAtDepth = 1;
+        //^ in order to know when to increment depth (distance from start) we must know when all
+        //vertices at the current depth have been processed, because we always start with one vertex,
+        //we know the number of vertices at depth 0 is 1, we decrement whenever we pop a vertex
+        int currDepth = 0;
+        //  start of standard BFS
+        while (Queue.Count > 0)
+        {
+            int nextIndex = Queue.Dequeue();
+            if (nextIndex == toIndex)
+            {
+                return currDepth;
+            }
+            for (int i = 0; i < NumServers; i++)
+            {
+                if (E[i, nextIndex] && !Visited.Contains(i))
+                {
+                    Visited.Add(i);
+                    Queue.Enqueue(i);
+                }
+            }
+            // end of standard BFS
+            if (--remainderAtDepth == 0)
+            { //when remainderAtDepth hits 0, we've finished processing all vertices at the current depth
+                currDepth++;
+                remainderAtDepth = Queue.Count;
+                //^ the number of vertices at the next depth will always equal the size of the queue at this point,
+                //as each vertex from the previous depth has added all it's unvisited neighbors and been removed from
+                //the queue
+            }
+        }
+        return -1; // this should never happen but we should still handle the possibility and the IDE/compiler will complain if you don't anyway
     }
 
     // 4 marks
@@ -398,8 +533,30 @@ public class WebGraph
     // Hint: Use the method ShortestPath in the class ServerGraph
     public float AvgShortestPaths(string name, ServerGraph S)
     {
-        // PLACEHOLDER
-        return 0f;
+            // PLACEHOLDER
+            //return 0f;
+            int pageIndex = FindPage(name);
+            if (pageIndex == -1)
+            { //if the page doesn't exist we want to fail out, note that we've chosen not to fail out if the page has no hyperlinks (we return 0 instead)
+                return -1f;
+            }
+            int numPaths = P[pageIndex].E.Count; //we do not need to calculate numPaths ourselves as the list storing hyperlinks did that for us automatically 
+            int sumPaths = 0; //there's potentially a better name for this variable but this is good enough and more importantly it rhymes with its sibling variable
+            foreach (WebPage hyperlink in P[pageIndex].E)
+            {
+                sumPaths += S.ShortestPath(P[pageIndex].Server, hyperlink.Server);
+            } //adding shortest path from page's host server to hyperlink's host server (an int)
+            if (numPaths > 0)
+            { //avoiding divide by zero and handling no hyperlinks case at same time
+                return sumPaths / numPaths;
+            }
+            else //if there are no hyperlinks on the page
+            {
+                // it's a bit subjective what the average shortest paths should be when there's no paths in the first place.
+                // I think an average distance of 0 feels pretty intuitive, but you could argue it should fail out instead because
+                // in that case the operation isn't valid (whether it's valid or not is also subjective though)
+                return 0f;
+            }
     }
 
     // 3 marks
@@ -428,6 +585,7 @@ public class User
         WebGraph webGraph = new WebGraph();
         Console.WriteLine("!: server graph and web graph successfully instantiated\n\n");
         bool run = true;
+        //int g = 0;
         while (run)
         {
             Console.WriteLine("Menu:");
@@ -456,10 +614,36 @@ public class User
                     runTest(); //we use methods for more complex procedures so the switch statement stays more readable
                     Console.WriteLine("!: test complete");
                     break;
+                case "c": //test critical servers
+                case "critcal servers":
+                    serverGraph.CriticalServers();
+                    //new string[] CritServers[] = serverGraph.CriticalServers();
+                    //if ( g <= NumServers; g++;)
+                        //Console.WriteLine(CritServers[g]);
+                    break;           
                 case "q": //quit
                 case "quit":
                 case "exit":
                     run = false;
+                    break;
+                case "help":
+                case "h":
+                    Console.WriteLine(
+                    "!: Help (h)\n" + // implemented
+                    "Print web graph (pwg)\n" + //implemented
+                    "Print server graph (psg)\n" + //implemented
+                    "Add server (as)\n" + // implemented
+                    "Add server connection (asc)\n" + //implemented
+                    "Print critical servers (pcs)" + //implemented
+                    "Print shortest path (psp)\n" + //implemented
+                    "Remove server (rms)\n" + //implemented
+                    "Add webpage (aw)\n" + //implemented
+                    "Add link from webpage (awc)\n" + //implemented
+                    "Remove link from page (rmwc)\n" + //implemented
+                    "Remove webpage (rmw)\n" + //implemented
+                    "Average shortest paths (asp)\n" + //implemented
+                    "Reset graphs (r)\n" + //implemented
+                    "Quit (q)\n"); //implemented
                     break;
                 default:
                     Console.WriteLine("!: unknown input, please try again...");
@@ -480,6 +664,7 @@ public class User
             webGraph.AddLink("Loki", "myTrent");
             webGraph.PrintGraph();
             serverGraph.PrintGraph();
+            Console.WriteLine(serverGraph.ShortestPath("Toronto  SuperServer", "Trent University Peterborough"));
         }
     }
 }

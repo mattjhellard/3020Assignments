@@ -76,7 +76,7 @@ public class ServerGraph
     {
         WebServer newServer; //we could avoid using newServer like this by wrapping everything after this if in an else but why do that? Isn't this nice as is? Certainly nicer than gratuitous wrapping in my opinion
         if (NumServers == 0)
-        {//handling first server add by just creating designated other before moving on
+        {//handling first server add by just sneakily creating designated other before moving on, we treat it like it was always there once we leave this block so if it fails after here the "other" server still exists
             newServer = new WebServer(other);
             // because there are no pre-existing servers if the process gets here, we can alter V more liberally
             V = new WebServer[] { newServer };

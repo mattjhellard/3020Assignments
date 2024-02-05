@@ -219,7 +219,6 @@ public class ServerGraph
     // Return all servers that would disconnect the server graph into
     // two or more disjoint graphs if ever one of them would go down
     // Hint: Use a variation of the depth-first search
-    //Articulatipn point methods taken from https://www.geeksforgeeks.org/articulation-points-or-cut-vertices-in-a-graph/amp/ after Dr. Brian Patrick mentioned them in class
     public string[] CriticalServers()
     {
         if (NumServers < 3)
@@ -530,7 +529,7 @@ public class User
         //int g = 0;
         while (run)
         {
-            Console.WriteLine("Menu:");
+            Console.Write("Menu:");
             String input = Console.ReadLine().ToLower();
             switch (input)
             {

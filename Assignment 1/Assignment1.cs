@@ -223,38 +223,38 @@ public class ServerGraph
     public string[] CriticalServers()
     {
         if (NumServers < 3)
-        {
+        { //if there are 0,1, or 2 servers then there cannot be a critical server among them
             return null;
         }
         List<string> criticalNames = new List<string>();
-        int startIndex;
-        int currCheckee;
         List<int> visited = new List<int>();
-        for(int i = 0; i<NumServers; i++)
+        for(int i = 0; i<NumServers; i++) //must be for loop rather than foreach as V can contain null entries and foreach does a bad job at avoiding them
         {
-            currCheckee = FindServer(V[i].Name);
-            if (currCheckee == 0)
-            {
-                startIndex = 1;
+            if(i == 0)
+            { //this if else looks kind of lengthy but really it just makes sure the DFS start point is valid but not the one we're checking
+                ModifiedDFS(i, 1);
             }
             else
             {
-                startIndex = 0;
+                ModifiedDFS(i, 0);
             }
-            ModifiedDFS(currCheckee, startIndex);
             if(visited.Count < NumServers - 1)
+            //^ if we found all servers without visiting the one we're checking then visited count will only be
+            //1 short of the total number of servers (we never added the one we're checking), if it's
+            //any less than that then the server we're checking must be critical as we couldn't find every other
+            //server without going through it.
             {
                 criticalNames.Add(V[i].Name);
             }
-            visited.Clear();
+            visited.Clear(); //resets visited so we can reuse it in the next iteration of the loop
         }
-        return criticalNames.ToArray();
+        return criticalNames.ToArray(); //at this point all vertices have been checked
 
-        void ModifiedDFS(int disallowed, int currIndex)
-        {
-            visited.Add(currIndex);
+        void ModifiedDFS(int disallowed, int currIndex) //we have this as a named method so that it can run recursively, if you really want to try doing this recursively without creating a method to call then you'd love coding in assembly
+        { //because we're not actually doing any special processing the DFS itself works out to be pretty simple,
+            visited.Add(currIndex); //you simply add the current index to an external list,
             for (int i = 0; i < NumServers; i++)
-            {
+            { //then recurse for every unvisited visitable adjacency
                 if (E[i,currIndex] && !visited.Contains(i) && i != disallowed) 
                 {
                     ModifiedDFS(disallowed, i);

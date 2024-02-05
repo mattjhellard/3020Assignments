@@ -326,23 +326,20 @@ public class ServerGraph
                 return;
             }
             int currServerIndex = FindServer(server.Name); //used to get the index of the current server for finding its connections on the matrix
-            Console.WriteLine("Server: " + server.Name + "\n\tConnections:");
+            Console.WriteLine("\nServer: " + server.Name + "\n\tConnections:");
             for (int i = 0; i < NumServers; i++) //finding all connections to the server on matrix
             {
                 if (E[i, currServerIndex]) //if a connection is found
                 {
-                    Console.WriteLine("\t-" + V[i].Name);
+                    Console.WriteLine("\t\t-" + V[i].Name);
                 }
             }
-            Console.WriteLine("\t\tHosting:");
+            Console.WriteLine("\tHosting:");
             foreach (WebPage page in server.P)
             {
                 Console.WriteLine("\t\t-" + page.Name);
             }
         }
-        //normally I dislike putting menu type functionality outside main in programs like these, but since the method prints anyway it makes sense to treat it like it has it's own little menu too
-        Console.WriteLine("!(ServerGraph): graph printed, hit enter to return");
-        Console.ReadLine();
     }
 }
 
@@ -513,15 +510,12 @@ public class WebGraph
     {
         foreach (WebPage page in P)
         {
-            Console.WriteLine("Webpage: " + page.Name + "\n\tHost: " + page.Server + "\n\t\tLinks to:");
+            Console.WriteLine("\nWebpage: " + page.Name + "\n\tHost: " + page.Server + "\n\tLinks to:");
             foreach (WebPage link in page.E)
             {
                 Console.WriteLine("\t\t-" + link.Name);
             }
         }
-        //normally I dislike putting menu type functionality outside main in programs like these, but since the method prints anyway it makes sense to treat it like it has it's own little menu too
-        Console.WriteLine("!(WebGraph): graph printed, hit enter to return");
-        Console.ReadLine();
     }
 }
 public class User

@@ -15,6 +15,6 @@
 - To make changes to the github repo from VS, you should sign into your github account within VS (File > Account Settings > All Accounts > Add)
 - When signed in, you can update the github repo by commiting changes and then pushing them. (in Git Changes)
 - For major and/or experimental changes, you can create a new branch to push changes without worrying about effecting the main (aka master) branch. (Git Changes > branch selection dropdown > New Branch)
-- Branches can be merged back into one branch
+- Branches can be "merged", this creates a new commit that points to the source branches, the merged commit will show all changes from both branches, if changes conflict between branches (changes to same file in both branches), VS has a built-in conflict handler that will, when a merge is in progress with conflicts, allow you to pick and choose which portions of the file to keep from the head of each branch. (It also uses some presumably sophisticated logic to determine which portions of the file are actually conflicting)
 - If you have any questions feel free to ask on the discord, but honestly the internet might be a faster better choice depending on how advanced the question is
 

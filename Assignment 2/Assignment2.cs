@@ -3,16 +3,35 @@ using Node = Rope; // iirc "nodes" in this context are same as "ropes" and vice 
 
 public class Rope
 {
+    private const int maxLeafLength = 10; // TODO: consider refactoring this into just 10 at submission, it is a useless datamember by compilation time, if it was c we could just use a #define but this is c#
+    private int totalLength;
+    private Node leftChild, rightChild;
+    private String value; // TODO: find better name for this data member
+
+
     // (5 marks) Create a balanced rope from a given string S
-    public Rope(string S)
+    public Rope(string S) // due to the recursive nature of the rope, this being the only constructor, and the fact that Build has to create a new Node somehow, we arrive at the conclusion that the constructor is going to be called within that recursion, and as such handles much of the recursion logic itself
     {
-        // TODO: implement constructor (unclaimed)
+        totalLength = S.Length;
+        if (totalLength <= maxLeafLength) //base case for recursion / leaf determination, a bonus of putting this in the constructor is handling inputs too small to break up is very easy
+        { //we check base case first as technically the majority of nodes are leafs
+            value = S;
+            leftChild = rightChild = null;
+        }
+        else //if the given string still needs to be broken down some more
+        {
+            value = ""; //we use the empty string to represent parent nodes' lack of a value for this datamember, makes printing them easier
+            int splitIndex = (int)totalLength / 2; //iirc this cast to int will effectively just drop the decimal value of the resultant float, i.e, it will always round down to form an int, this is okay as long as we keep that in mind going forward
+            leftChild = Build(S, 0, splitIndex); //build basically returns whatever THIS constructor makes when the input is the designated substring
+            rightChild = Build(S, splitIndex, totalLength); // TODO: explain why the end of leftChild should have the same value as the start of rightChild
+        }
     }
     // Recursively build a balanced rope for S[i,j] and return its root
     private Node Build(string s, int i, int j)
-    {
-        // TODO: implement method Build (unclaimed)
-        return null; //placeholder
+    { //as this is a private method we can assume methods calling it will simply use it properly, and then go make sure that's definitely the case
+        string sPartial = s.Substring(i, j - i); //we need to actually create a substring here as the constructor doesn't take any substring index arguments
+        Node root = new Node(sPartial); //recursive constructor call
+        return root;
     }
     // (3 marks) Return the root of the rope constructed by concatenating two ropes with roots p and q
     private Node Concatenate(Node p, Node q)
@@ -86,7 +105,32 @@ public class Rope
     // (4 marks) Print the augmented binary tree of the current rope
     public void PrintRope()
     {
-        // TODO: implement method PrintRope (unclaimed)
+        PrintRopeRecursively(0, this);
+    }
+    private void PrintRopeRecursively(int indent, Node root)
+    {
+        if (root == null) //if we allow ourselves to step into null children and then just check at the start of each recursion, the code is a lot cleaner (one check vs two similar checks)
+        {
+            return;
+        }
+        if (root.leftChild == null && root.rightChild == null) //case when at leaf node
+        {
+            for (int i = 0; i < indent; i++)
+            {
+                Console.Write("\t"); //looping to write appropriate number of indents for current recursion depth
+            }
+            Console.WriteLine(root.value);
+        }
+        else //case when at parent node
+        { //recall inorder search
+            PrintRopeRecursively(indent + 1, root.leftChild);
+            for (int i = 0; i < indent; i++)
+            {
+                Console.Write("\t");
+            }
+            Console.WriteLine("*"); //we use * to indicate parent node in print, indentation should guarantee that visually segregating parents from leafs is never too challenging regardless
+            PrintRopeRecursively(indent + 1, root.rightChild);
+        }
     }
 }
 
@@ -97,7 +141,7 @@ public static class User
         Console.WriteLine("3020 Assignment 2\nby\nBenjamin Macintosh\nMatthew Hellard\nInput (help) for commands listing\n");
         // we want these variables to persist between loop iterations
         bool run = true;
-        Rope rope;
+        Rope rope = new Rope(""); //we instantiate to something to minimize errors
         while (run)
         {
             Console.Write("Input :");
@@ -122,6 +166,10 @@ public static class User
                         Console.Write("!: Input new rope string :");
                         rope = new Rope(Console.ReadLine());
                     }
+                    break;
+                case "pr":
+                case "print rope":
+                    rope.PrintRope();
                     break;
                 case "q":
                 case "quit":

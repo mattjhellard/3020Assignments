@@ -4,6 +4,8 @@ using Node = Rope; // iirc "nodes" in this context are same as "ropes" and vice 
 public class Rope
 {
     private const int maxLeafLength = 10; // TODO: consider refactoring this into just 10 at submission, it is a useless datamember by compilation time, if it was c we could just use a #define but this is c#
+    private const String parentValue = ""; // TODO: refactor this into just the value before submission, variable exists purely for our convenience during development, same as above
+
     private int totalLength;
     private Node leftChild, rightChild;
     private String value; // TODO: find better name for this data member
@@ -17,9 +19,9 @@ public class Rope
             value = S;
             leftChild = rightChild = null;
         }
-        else //if the given string still needs to be broken down some more
+        else //if the given string still needs to be broken down some more (we are handling a parent to-be)
         {
-            value = ""; //we use the empty string to represent parent nodes' lack of a value for this datamember, though as of writing this value is never used in a parent
+            value = parentValue; //note: as of writing the value held in a parent node is never actually used
             int splitIndex = (int)totalLength / 2; //this cast effectively rounds down, the result of this is if totalLength is odd then the right child always gets the extra char
             leftChild = Build(S, 0, splitIndex); //build basically returns whatever THIS constructor makes when the substring defined in the arguments is fed back into it
             rightChild = Build(S, splitIndex, totalLength); // TODO: explain why the end of leftChild should have the same value as the start of rightChild
@@ -36,8 +38,10 @@ public class Rope
     // (3 marks) Return the root of the rope constructed by concatenating two ropes with roots p and q
     private Node Concatenate(Node p, Node q)
     {
-        // TODO: implement method Concatenate (unclaimed)
-        return null; //placeholder
+        Node root = new Node(parentValue); //a (necessary) side effect of the short length of the parent node value is that when we create a rope with this value we are guaranteed that it will have no children of its own,
+        root.leftChild = p; //, though even if root was given non-null children they would just be overwritten here anyway 
+        root.rightChild = q;
+        return root;
     }
     // (9 marks) Split the rope with root p at index i and return the root of the right subtree
     private Node Split(Node p, int i)
@@ -82,8 +86,32 @@ public class Rope
     // (4 marks) Return the index of the first occurrence of character c
     public int IndexOf(char c)
     {
-        // TODO: implement method IndexOf (unclaimed)
-        return '\0'; //placeholder
+        return FirstIndexOfC(this); //the local function does all the work
+        //our recursive local function need not use c as a parameter because we are always within scope of the public method 
+        int FirstIndexOfC(Node root) //I understand we could just overload IndexOf for the name but I found that a little hard to parse visually tbh, likely due to same parameter count
+        { // TODO: (optional) maybe do this more readably, perhaps by making better use of totalLength somehow? 
+            int index;
+            if (root.leftChild != null && (index = FirstIndexOfC(root.leftChild)) != -1) // somewhat rare example of nested conditional being less confusing than alternative non-nested structure
+            {
+                return index;
+                //locally, when found in the left child, the index returned from the base case needs no modification to be accurate, as there was nothing to the left of it anyway
+            }
+            if (root.rightChild != null && (index = FirstIndexOfC(root.rightChild)) != -1)
+            {
+                return index + (root.leftChild != null ? root.leftChild.totalLength : 0);
+                //^ elusive ternary operator, statement expands to: if leftChild not null return index+leftChild.totalLength, else return index+0
+                //locally, when found in right child, the index returned should be added to the length of the left child (if it exists), to keep the index accurate to the local root
+            }
+            //actually checking for value after searching children, i.e., postorder search, note that this means a parent node in the rope context will never be searched before all it's leaves have been searched
+            for (int i = 0; i < root.value.Length; i++) //note: as of writing parent nodes skip this loop almost entirely as their value fails the conditional as soon as it's checked
+            {
+                if (root.value[i] == c) //c# was nice enough to allow strings to be treated as arrays of chars in some ways, since that's probably still what they are under the hood
+                {
+                    return i;
+                }
+            }
+            return -1; //if no children of the local root (or the root itself) contain the char
+        }
     }
     // (5 marks) Reverse the string represented by the current rope
     public void Reverse()
@@ -119,7 +147,7 @@ public class Rope
             }
             if (root.leftChild == null && root.rightChild == null) //case when at leaf node
             {
-                Console.WriteLine(indent+ "* " + root.value);
+                Console.WriteLine(indent + "* " + root.value);
             }
             else //case when at parent node
             { //recall inorder search
@@ -181,6 +209,28 @@ public static class User
                         rope = new Rope(Console.ReadLine());
                     }
                     break;
+                case "gic":
+                case "get index of character":
+                    char inputToUse; //this is declared separately because we use the user determined value several times in this case
+                    if (input.Length >= 2) //gic only accepts one arg and no flags, but if more than 1 arg given we'll still just take the first char of the first arg
+                    {
+                        inputToUse = input[1][0]; //first char of user input string, we only want a char and this guarantees we get it
+                    }
+                    else
+                    {
+                        Console.Write("Enter char to look for :");
+                        inputToUse = Console.ReadLine()[0]; //there are other ways to get chars specifically from user input but this one is simple and involves the fewest potential exceptions being thrown
+                    }
+                    int charIndex = rope.IndexOf(inputToUse); //we want to print the index AND check its value so we must store it after the call
+                    if (charIndex == -1)
+                    {
+                        Console.WriteLine("Could not find char '{0}' in rope", inputToUse);
+                    }
+                    else
+                    {
+                        Console.WriteLine("'{0}' found at index {1}", inputToUse, charIndex);
+                    }
+                    break;
                 case "pr":
                 case "print rope":
                     rope.PrintRope();
@@ -201,7 +251,7 @@ public static class User
                         "-Get Substring in Range (gsr)\n" +
                         "-Find first Substring (fs)\n" +
                         "-Get Character at Index (gci)\n" +
-                        "-Get first Index of Character (gic)\n" +
+                        "-Get first Index of Character (gic) <character to look for>\n" + //implemented
                         "-Reverse Rope (rr)\n" +
                         "-Get Length (gl)\n" +
                         "-Translate To String (tts)\n" +

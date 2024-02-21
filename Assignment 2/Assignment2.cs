@@ -1,20 +1,21 @@
 ﻿using System;
 using Node = Rope; // iirc "nodes" in this context are same as "ropes" and vice versa, this makes it official, can refactor away if need be
+using System.IO; //NOTE: Rope does NOT make use of this at all, only utilized in Main to quickly insert HUGE strings as inputs for Rope
 
 public class Rope
 {
     private const int maxLeafLength = 10; // TODO: consider refactoring this into just 10 at submission, it is a useless datamember by compilation time, if it was c we could just use a #define but this is c#
     private const String parentValue = ""; // TODO: refactor this into just the value before submission, variable exists purely for our convenience during development, same as above
 
-    private int totalLength;
+    private int length;
     private Node leftChild, rightChild;
     private String value; // TODO: find better name for this data member
 
     // (5 marks) Create a balanced rope from a given string S
     public Rope(string S) // due to the recursive nature of the rope, this being the only constructor, and the fact that Build has to create a new Node somehow, we arrive at the conclusion that the constructor is going to be called within that recursion, and as such handles much of the recursion logic itself
     {
-        totalLength = S.Length;
-        if (totalLength <= maxLeafLength) //base case for recursion / leaf determination, a bonus of putting this in the constructor is handling inputs too small to break up is very easy
+        length = S.Length;
+        if (length <= maxLeafLength) //base case for recursion / leaf determination, a bonus of putting this in the constructor is handling inputs too small to break up is very easy
         { //we check base case first as technically the majority of nodes are leafs
             value = S;
             leftChild = rightChild = null;
@@ -22,9 +23,9 @@ public class Rope
         else //if the given string still needs to be broken down some more (we are handling a parent to-be)
         {
             value = parentValue; //note: as of writing the value held in a parent node is never actually used
-            int splitIndex = (int)totalLength / 2; //this cast effectively rounds down, the result of this is if totalLength is odd then the right child always gets the extra char
+            int splitIndex = (int)length / 2; //this cast effectively rounds down, the result of this is if totalLength is odd then the right child always gets the extra char
             leftChild = Build(S, 0, splitIndex); //build basically returns whatever THIS constructor makes when the substring defined in the arguments is fed back into it
-            rightChild = Build(S, splitIndex, totalLength); // TODO: explain why the end of leftChild should have the same value as the start of rightChild
+            rightChild = Build(S, splitIndex, length); // TODO: explain why the end of leftChild should have the same value as the start of rightChild
         }
     }
 
@@ -98,7 +99,7 @@ public class Rope
             }
             if (root.rightChild != null && (index = FirstIndexOfC(root.rightChild)) != -1)
             {
-                return index + (root.leftChild != null ? root.leftChild.totalLength : 0);
+                return index + (root.leftChild != null ? root.leftChild.length : 0);
                 //^ elusive ternary operator, statement expands to: if leftChild not null return index+leftChild.totalLength, else return index+0
                 //locally, when found in right child, the index returned should be added to the length of the left child (if it exists), to keep the index accurate to the local root
             }
@@ -116,13 +117,41 @@ public class Rope
     // (5 marks) Reverse the string represented by the current rope
     public void Reverse()
     {
-        // TODO: implement method Reverse (unclaimed)
+        //reversing children
+        Node rightOrphan = rightChild;
+        rightChild = leftChild;
+        leftChild = rightOrphan;
+
+        //reversing value if leaf
+        if (leftChild == null && rightChild == null)
+        {
+            String valueReverse = "";
+            for (int i = value.Length - 1; i >= 0; i--)
+            {
+                valueReverse += value[i];
+            }
+            value = valueReverse;
+        }
+        else //if not leaf then repeat process with children if they're not null (they can't both be null at this point, but one of them still could be)
+        {
+            if (leftChild != null)
+            {
+                leftChild.Reverse();
+            }
+            if (rightChild != null)
+            {
+                rightChild.Reverse();
+            }
+        }
     }
+
     // (1 mark) Return the length of the string
-    public int Length()
-    { //note: while there's nothing explicitely preventing a child node from having this called, a user has no way of accessing children of the ultimate root of the rope they created, so they can only call this from the ultimate root 
-        return totalLength;
+    public int Length //modified into property for ease of use by user and to make it function more like a typical string
+    { //note: while there's nothing explicitely preventing a child node from having this called, a user has no way of accessing children of the ultimate root of the rope they created, so they can only call this from the ultimate root
+      //also, any local methods should just get length directly from the variable
+        get { return length; }
     }
+
     // (4 marks) Return the string represented by the current scope
     public override string ToString() //note: all objects have a (basic) ToString method, usually inherited, so this method is technically an override 
     {
@@ -132,10 +161,11 @@ public class Rope
     // (4 marks) Print the augmented binary tree of the current rope
     public void PrintRope()
     {
+        Console.WriteLine("(Rope): Printing rope...");
         PrintRope(0, this); //we simply use the public method to initiate the private recursive function
         //using local function vs private method as the function exists only to be used by the parent method, so making usage by other methods possible is semantically incorrect
         void PrintRope(int indentation, Node root)
-        {
+        { //this approach sort-of breaks when the string is absurdly large as the console window can't get wide enough to show the max indendation and there's no way to turn off word wrapping in the console afaik so it just becomes unreadable, I'd blame MS before ourselves for that though
             String indent = new String('\t', indentation);
             //^ this uses an obscure overload of the String constructor to make our sequence of indendations for us
             //by building the indent string discretely uptop, we simplify the logic of printing what we want with it's required indentations
@@ -200,12 +230,41 @@ public static class User
                     }
                     else if (NRp != null) //if path was given
                     {
-                        // TODO: add file i/o support, note: we don't want to use file i/o within the rope class, so all that stuff must not leave the User class, save importing the libraries at the start of the file
-                        Console.WriteLine(NRp); //placeholder
+                        String path;
+                        //NOTE: the following logic assumes NTFS filesystem (the one modern Windows uses), running this code on Linux, or macOS, or something weird, could and probably would produce errors here, though that probably would be the case even if this wasn't here, idek if you can compile c# outside windows, why would MS bother writing a non windows compiler, let alone anyone else?
+                        try
+                        {
+                            if (NRp.Length >= 2 && NRp[1] == ':') //if it looks like the user input an absolute path, first conditional just avoids out of bounds exceptions
+                            //^ : are illegal in filenames and folders on Windows and drives are always designated as a single char so a : in the 2nd position almost certainly refers to a drive, in which case the given path is certainly absolute
+                            {
+                                path = @NRp; //prepending string with @ has the string be taken as verbatim literal, which means \ are treated literally rather than as escape characters 
+                            }
+                            else //if given path isn't absolute we assume it's relative to local root, which depends on where compiled code is running from
+                            { //TODO: remove this comment by submission: current directory when running from VS will by default be: ...\3020Assignments\Assignment 2\bin\Debug
+                                path = @Directory.GetCurrentDirectory() +@"\"+ @NRp;
+                            }
+                            if (!File.Exists(path)) //we escape the structure if we can't find the file by throwing an exception and catching it outside the structure
+                            {
+                                throw new ArgumentException("!: file not found");
+                            }
+                            //if found, we try to read in the file in whole
+                            StreamReader sr = new StreamReader(path);
+                            String fileContents = sr.ReadToEnd();
+                            sr.Close();
+                            rope = new Rope(fileContents);
+                        }
+                        catch (ArgumentException e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
+                        catch (Exception)
+                        {
+                            Console.WriteLine("!: unknown file read error");
+                        }
                     }
                     else //default case
                     {
-                        Console.Write("Input new rope string :");
+                        Console.Write("!: Input new rope string :");
                         rope = new Rope(Console.ReadLine());
                     }
                     break;
@@ -218,30 +277,41 @@ public static class User
                     }
                     else
                     {
-                        Console.Write("Enter char to look for :");
+                        Console.Write("!: Enter char to look for :");
                         inputToUse = Console.ReadLine()[0]; //there are other ways to get chars specifically from user input but this one is simple and involves the fewest potential exceptions being thrown
                     }
                     int charIndex = rope.IndexOf(inputToUse); //we want to print the index AND check its value so we must store it after the call
                     if (charIndex == -1)
                     {
-                        Console.WriteLine("Could not find char '{0}' in rope", inputToUse);
+                        Console.WriteLine("!: Could not find char '{0}' in rope", inputToUse);
                     }
                     else
                     {
-                        Console.WriteLine("'{0}' found at index {1}", inputToUse, charIndex);
+                        Console.WriteLine("!: '{0}' found at index {1}", inputToUse, charIndex);
                     }
+                    break;
+                case "rr":
+                case "reverse rope":
+                    rope.Reverse();
                     break;
                 case "pr":
                 case "print rope":
                     rope.PrintRope();
                     break;
+                case "gl":
+                case "get length":
+                    Console.WriteLine("!: Length of rope is: " + rope.Length);
+                    break;
                 case "q":
+                case "qq":
+                case "qqq":
                 case "quit":
                 case "exit":
                     run = false;
                     break;
                 case "help":
                 case "h":
+                case "?":
                     Console.WriteLine(
                         "!: All subsequent arguments/options past command optional, order of options shown is only valid order of input\n" +
                         "-Help (h)\n" + //implemented
@@ -252,8 +322,8 @@ public static class User
                         "-Find first Substring (fs)\n" +
                         "-Get Character at Index (gci)\n" +
                         "-Get first Index of Character (gic) <character to look for>\n" + //implemented
-                        "-Reverse Rope (rr)\n" +
-                        "-Get Length (gl)\n" +
+                        "-Reverse Rope (rr)\n" + //implemented
+                        "-Get Length (gl)\n" + //implemented
                         "-Translate To String (tts)\n" +
                         "-Print Rope (pr)\n" + //implemented
                         "-Quit (q)"); //implemented

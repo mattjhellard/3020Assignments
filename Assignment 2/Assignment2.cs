@@ -4,9 +4,9 @@ using System.IO; //NOTE: Rope does NOT make use of this at all, only utilized in
 
 public class Rope
 {
-    private const int maxLeafLength = 10; // TODO: consider refactoring this into just 10 at submission, it is a useless datamember by compilation time, if it was c we could just use a #define but this is c#
-    private const String parentValue = ""; // TODO: refactor this into just the value before submission, variable exists purely for our convenience during development, same as above
-
+    private const int maxLeafLength = 10;
+    private const String parentValue = "";
+    //^ note: the compiler is smart enough to not have duplicates of const values in every instance of the class, at worst, all instances share one copy of the objects, but iirc, it might even replace their references with the literal values during compilation
     private int length;
     private Node leftChild, rightChild;
     private String value; // TODO: find better name for this data member
@@ -36,6 +36,7 @@ public class Rope
         Node root = new Node(sPartial); //recursive constructor call
         return root;
     }
+
     // (3 marks) Return the root of the rope constructed by concatenating two ropes with roots p and q
     private Node Concatenate(Node p, Node q)
     {
@@ -44,6 +45,7 @@ public class Rope
         root.rightChild = q;
         return root;
     }
+
     // (9 marks) Split the rope with root p at index i and return the root of the right subtree
     private Node Split(Node p, int i)
     {
@@ -81,8 +83,20 @@ public class Rope
     // (3 marks) Return the character at index i
     public char CharAt(int i)
     {
-        // TODO: implement method CharAt (unclaimed)
-        return '\0'; //placeholder
+        if (leftChild == null && rightChild == null && value.Length >= i && value != "") //base case + error prevention
+        {
+            return value[i];
+        }
+        if (leftChild != null && i < leftChild.length)
+        {//whenever we go left, we don't have to modify the index we're searching for because basically there's nothing left of left so if we go left the number is already appropriate for left child being the new root
+            return leftChild.CharAt(i);
+        }
+        if (rightChild != null)
+        { //whenever we go right, we need to modify the index for the context of the rightChild being the next root, as the initial i is given with leftChild in mind, but we're removing leftChild from the context when we make rightChild the new root
+            return rightChild.CharAt(i - leftChild.length);
+        }
+        //if we get here then the method failed to find a char for the given index, which shouldn't be possible if the index isn't out of bounds
+        throw new ArgumentOutOfRangeException();
     }
     // (4 marks) Return the index of the first occurrence of character c
     public int IndexOf(char c)
@@ -114,6 +128,7 @@ public class Rope
             return -1; //if no children of the local root (or the root itself) contain the char
         }
     }
+
     // (5 marks) Reverse the string represented by the current rope
     public void Reverse()
     {
@@ -153,11 +168,25 @@ public class Rope
     }
 
     // (4 marks) Return the string represented by the current scope
-    public override string ToString() //note: all objects have a (basic) ToString method, usually inherited, so this method is technically an override 
+    public override string ToString() //note: all objects have a (basic) ToString method, inherited from object, so this method is technically an override 
     {
-        // TODO: implement method ToString (unclaimed)
-        return null; //placeholder
+        if (leftChild == null && rightChild == null) //if we're at a leaf we just return the value
+        {
+            return value;
+        }
+        //otherwise we recursively append the right child to the left child and return that
+        String fullString = "";
+        if (leftChild != null) // TODO: double check that these conditionals would ever be necessary
+        {
+            fullString += leftChild.ToString();
+        }
+        if (rightChild != null)
+        {
+            fullString += rightChild.ToString();
+        }
+        return fullString;
     }
+
     // (4 marks) Print the augmented binary tree of the current rope
     public void PrintRope()
     {
@@ -226,7 +255,7 @@ public static class User
                 case "new rope":
                     if (input.Length == 2) //if one arg given after command we assume we are to use it as the input for the rope 
                     {
-                        rope = new Rope(input[input.Length - 1]);
+                        rope = new Rope(input[1]);
                     }
                     else if (NRp != null) //if path was given
                     {
@@ -241,7 +270,7 @@ public static class User
                             }
                             else //if given path isn't absolute we assume it's relative to local root, which depends on where compiled code is running from
                             { //TODO: remove this comment by submission: current directory when running from VS will by default be: ...\3020Assignments\Assignment 2\bin\Debug
-                                path = @Directory.GetCurrentDirectory() +@"\"+ @NRp;
+                                path = @Directory.GetCurrentDirectory() + @"\" + @NRp;
                             }
                             if (!File.Exists(path)) //we escape the structure if we can't find the file by throwing an exception and catching it outside the structure
                             {
@@ -266,6 +295,32 @@ public static class User
                     {
                         Console.Write("!: Input new rope string :");
                         rope = new Rope(Console.ReadLine());
+                    }
+                    break;
+                case "gci":
+                case "get character at index":
+                    String gciInput;
+                    if (input.Length >= 2)
+                    {
+                        gciInput = input[1];
+                    }
+                    else
+                    {
+                        Console.Write("!: Input int index to search at :");
+                        gciInput = Console.ReadLine();
+                    }
+                    try
+                    {
+                        int indexToFind = Convert.ToInt32(gciInput);
+                        Console.WriteLine("!: Char at index {0} is '{1}'",indexToFind,rope.CharAt(indexToFind));
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        Console.WriteLine("!: Given argument out of range of rope");
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("!: Could not convert argument to int");
                     }
                     break;
                 case "gic":
@@ -302,6 +357,10 @@ public static class User
                 case "get length":
                     Console.WriteLine("!: Length of rope is: " + rope.Length);
                     break;
+                case "tts":
+                case "translate to string":
+                    Console.WriteLine("!: Rope to string: " + rope.ToString());
+                    break;
                 case "q":
                 case "qq":
                 case "qqq":
@@ -315,16 +374,16 @@ public static class User
                     Console.WriteLine(
                         "!: All subsequent arguments/options past command optional, order of options shown is only valid order of input\n" +
                         "-Help (h)\n" + //implemented
-                        "-New Rope (nr) <string to use> || (nr) -p <path to file containing string>\n" + //semi-implemented
+                        "-New Rope (nr) <string to use> || (nr) -p <path to file containing string>\n" + //implemented
                         "-Insert Substring at Index (isi)\n" +
                         "-Delete Substring in Range (dsr)\n" +
                         "-Get Substring in Range (gsr)\n" +
                         "-Find first Substring (fs)\n" +
-                        "-Get Character at Index (gci)\n" +
+                        "-Get Character at Index (gci) <int index to search in>\n" + //implemented
                         "-Get first Index of Character (gic) <character to look for>\n" + //implemented
                         "-Reverse Rope (rr)\n" + //implemented
                         "-Get Length (gl)\n" + //implemented
-                        "-Translate To String (tts)\n" +
+                        "-Translate To String (tts)\n" + //implemented
                         "-Print Rope (pr)\n" + //implemented
                         "-Quit (q)"); //implemented
                     break;

@@ -9,7 +9,7 @@ public class Rope
     //^ note: the compiler is smart enough to not have duplicates of const values in every instance of the class, at worst, all instances share one copy of the objects, but iirc, it might even replace their references with the literal values during compilation
     private int length;
     private Node leftChild, rightChild;
-    private String value; // TODO: find better name for this data member
+    private String value;
 
     // (5 marks) Create a balanced rope from a given string S
     public Rope(string S) // due to the recursive nature of the rope, this being the only constructor, and the fact that Build has to create a new Node somehow, we arrive at the conclusion that the constructor is going to be called within that recursion, and as such handles much of the recursion logic itself
@@ -70,9 +70,35 @@ public class Rope
     }
     // (6 marks) Return the substring S[i,j]
     public string Substring(int i, int j)
-    {
-        // TODO: implement method Substring (unclaimed)
-        return null; //placeholder
+    { // TODO: solve potential off by one error where calling S[i,j] returns S[i,j-1] (THIS COULD BE WORKING AS INTENDED, MAKE SURE BEFORE REALLY LOOKING FOR FIX)
+        if (i > j)
+        {
+            throw new ArgumentException();
+        }
+        if (leftChild == null && rightChild == null) // base case, we assume indices have already been appropriately recontextualized for the current root
+        {
+            return value.Substring(i, j - i);
+        }
+        //if not in base case then we need to know which of the two children to recurse into, there are only three options so we just manually decide with explicit logic
+        //if both indices are less than leftchild length then we should only recurse into leftchild as the whole substring is in there
+        if (leftChild != null && i < leftChild.length && j < leftChild.length)
+        {
+            return leftChild.Substring(i, j);
+        }
+        //if i is greater than or equal (indices zero based) to leftchild length then the whole substring is in rightchild (i <= j)
+        if (rightChild != null && i >= leftChild.length)
+        { //must adjust indices for removal of leftChild from context
+            return rightChild.Substring(i - leftChild.Length, j - leftChild.Length);
+        }
+        //if i < leftChild length while j > leftChild length then the substring is split between both children, we append what we get back from left with what we get back from right
+        if (leftChild != null && i < leftChild.length && rightChild != null && j >= leftChild.length)
+        {
+            String subString = leftChild.Substring(i, leftChild.length);
+            subString += rightChild.Substring(0, j - leftChild.length);
+            return subString;
+        }
+        //we shouldn't get to this point if the indices can be found
+        throw new ArgumentOutOfRangeException();
     }
     // (9 marks) Return the index of the first occurrence of S; -1 otherwise
     public int Find(string S)
@@ -98,6 +124,7 @@ public class Rope
         //if we get here then the method failed to find a char for the given index, which shouldn't be possible if the index isn't out of bounds
         throw new ArgumentOutOfRangeException();
     }
+
     // (4 marks) Return the index of the first occurrence of character c
     public int IndexOf(char c)
     {
@@ -220,7 +247,7 @@ public class Rope
 
 public static class User
 {
-    public static void Main(string[] args) // NOTE: let's consider implementing accepting initial arguments, if we don't do that then remove parameters from main before submission
+    public static void Main(string[] args) // TODO: let's consider implementing accepting initial arguments, if we don't do that then remove parameters from main before submission
     {
         Console.WriteLine("3020 Assignment 2\nby\nBenjamin Macintosh\nMatthew Hellard\nInput (help) for commands listing\n");
         // we want these variables to persist between loop iterations
@@ -297,6 +324,41 @@ public static class User
                         rope = new Rope(Console.ReadLine());
                     }
                     break;
+                case "gsr":
+                case "get substring in range":
+                    String iString;
+                    String jString;
+                    if (input.Length >= 3)
+                    {
+                        iString = input[1];
+                        jString = input[2];
+                    }
+                    else
+                    {
+                        Console.Write("!: Input first int :");
+                        iString = Console.ReadLine();
+                        Console.Write("!: Input second int :");
+                        jString = Console.ReadLine();
+                    }
+                    try
+                    {
+                        int i = Convert.ToInt32(iString);
+                        int j = Convert.ToInt32(jString);
+                        Console.WriteLine("!: Substring from {0} to {1} is :{2}", i, j, rope.Substring(i, j));
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("!: Could not convert argument(s) to int");
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        Console.WriteLine("!: Given arguments out of range");
+                    }
+                    catch (ArgumentException)
+                    {
+                        Console.WriteLine("!: Start index must be less than end index");
+                    }
+                    break;
                 case "gci":
                 case "get character at index":
                     String gciInput;
@@ -312,7 +374,7 @@ public static class User
                     try
                     {
                         int indexToFind = Convert.ToInt32(gciInput);
-                        Console.WriteLine("!: Char at index {0} is '{1}'",indexToFind,rope.CharAt(indexToFind));
+                        Console.WriteLine("!: Char at index {0} is '{1}'", indexToFind, rope.CharAt(indexToFind));
                     }
                     catch (ArgumentOutOfRangeException)
                     {
@@ -377,7 +439,7 @@ public static class User
                         "-New Rope (nr) <string to use> || (nr) -p <path to file containing string>\n" + //implemented
                         "-Insert Substring at Index (isi)\n" +
                         "-Delete Substring in Range (dsr)\n" +
-                        "-Get Substring in Range (gsr)\n" +
+                        "-Get Substring in Range (gsr) <start index> <end index>\n" + //implemented
                         "-Find first Substring (fs)\n" +
                         "-Get Character at Index (gci) <int index to search in>\n" + //implemented
                         "-Get first Index of Character (gic) <character to look for>\n" + //implemented

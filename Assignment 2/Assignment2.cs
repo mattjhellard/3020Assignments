@@ -6,7 +6,7 @@ public class Rope
 {
     private const int maxLeafLength = 10;
     private const String parentValue = "";
-    //^ note: the compiler is smart enough to not have duplicates of const values in every instance of the class, at worst, all instances share one copy of the objects, but iirc, it might even replace their references with the literal values during compilation
+    //^ note: the compiler is smart enough to not have duplicates of const values in every instance of the class, iirc all instances of the class share one copy of the consts
     private int length;
     private Node leftChild, rightChild;
     private String value;
@@ -100,11 +100,54 @@ public class Rope
         //we shouldn't get to this point if the indices can be found
         throw new ArgumentOutOfRangeException();
     }
+
     // (9 marks) Return the index of the first occurrence of S; -1 otherwise
     public int Find(string S)
-    {
-        // TODO: implement method Find (unclaimed)
-        return -1; //placeholder
+    { // TODO: do this better
+        if (S.Length == 0) //immediately obvious fail case(s)
+        { //failing when given string is empty both makes some sense semantically and makes the process much easier
+            return -1;
+        }
+        //these variables are "shared" by all instances of the BuildS function
+        int SIndex = 0; //tracks where in S we are currently looking
+        int GlobalIndex = 0; //tracks where in the rope we currently are (critical for returning an index on success)
+        BuildS(this);
+        void BuildS(Node root)
+        {
+            if (root.leftChild == null && root.rightChild == null) //base case
+            { //when at a leaf, we loop through the value to the end or stop when we detect success
+                for (int i = 0; i < root.value.Length && SIndex < S.Length; i++)
+                {
+                    if (root.value[i] == S[SIndex]) //if the current char matches the char we want to see
+                    {
+                        SIndex++; //we move SIndex so we know to start looking for the next char
+                    }
+                    else //if current char doesn't match what we want to see
+                    {
+                        SIndex = 0; //we reset SIndex because we don't have a match, since we don't run the loop once we find a full match no issues present themselves
+                    }
+                    GlobalIndex++; //each loop, regardless of success or failure, shifts our position in the full rope, so we increment accordingly
+                }
+            }
+            //traversing rope recursively
+            if (root.leftChild != null && SIndex < S.Length)
+            {
+                BuildS(root.leftChild);
+            }
+            if (root.rightChild != null && SIndex < S.Length)
+            {
+                BuildS(root.rightChild);
+            }
+        }
+        //when BuildS has finished including recursions, if SIndex equals S length then there exists an unbroken sequence of chars in the rope that matches S, so S is in the rope
+        if (SIndex == S.Length)
+        {
+            return GlobalIndex - SIndex;
+        }
+        else //if this is not the case, then there is not an unbroken chain of chars that matches S, so S is not in the rope 
+        {
+            return -1;
+        }
     }
     // (3 marks) Return the character at index i
     public char CharAt(int i)
@@ -133,7 +176,7 @@ public class Rope
         int FirstIndexOfC(Node root) //I understand we could just overload IndexOf for the name but I found that a little hard to parse visually tbh, likely due to same parameter count
         { // TODO: (optional) maybe do this more readably, perhaps by making better use of totalLength somehow? 
             int index;
-            if (root.leftChild != null && (index = FirstIndexOfC(root.leftChild)) != -1) // somewhat rare example of nested conditional being less confusing than alternative non-nested structure
+            if (root.leftChild != null && (index = FirstIndexOfC(root.leftChild)) != -1)
             {
                 return index;
                 //locally, when found in the left child, the index returned from the base case needs no modification to be accurate, as there was nothing to the left of it anyway
@@ -152,7 +195,7 @@ public class Rope
                     return i;
                 }
             }
-            return -1; //if no children of the local root (or the root itself) contain the char
+            return -1; //if no children of the local root (or the root itself) contain the char, we're assuming -1 is an appropriate return value for no results
         }
     }
 
@@ -359,6 +402,34 @@ public static class User
                         Console.WriteLine("!: Start index must be less than end index");
                     }
                     break;
+                case "fs":
+                case "find substring":
+                    string inputString = "";
+                    if (input.Length >= 2)
+                    {
+                        //this loop is a consequence of us tokenizing the initial input by space, to enable inputting strings with spaces we have to first rebuild it
+                        for (int i = 1; i < input.Length - 1; i++)
+                        {
+                            inputString += input[i] + " "; //we have to re-add in the spaces as the tokenization didn't keep them
+                        }
+                        //we skip the final bit of the array in the loop so we can treat it differently (not append with space)
+                        inputString += input[input.Length - 1];
+                    }
+                    else
+                    {
+                        Console.Write("!: Input substring to find :");
+                        inputString = Console.ReadLine();
+                    }
+                    int subStringIndex = rope.Find(inputString);
+                    if (subStringIndex == -1)
+                    {
+                        Console.WriteLine("Could not find string \"{0}\" in rope", inputString);
+                    }
+                    else
+                    {
+                        Console.WriteLine("String \"{0}\" found starting at index {1}", inputString, subStringIndex);
+                    }
+                    break;
                 case "gci":
                 case "get character at index":
                     String gciInput;
@@ -440,7 +511,7 @@ public static class User
                         "-Insert Substring at Index (isi)\n" +
                         "-Delete Substring in Range (dsr)\n" +
                         "-Get Substring in Range (gsr) <start index> <end index>\n" + //implemented
-                        "-Find first Substring (fs)\n" +
+                        "-Find first Substring (fs) <substring to find>\n" + //implemented
                         "-Get Character at Index (gci) <int index to search in>\n" + //implemented
                         "-Get first Index of Character (gic) <character to look for>\n" + //implemented
                         "-Reverse Rope (rr)\n" + //implemented

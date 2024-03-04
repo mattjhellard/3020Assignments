@@ -5,7 +5,7 @@ using System.IO; //NOTE: Rope does NOT make use of this at all, only utilized in
 public class Rope
 {
     private const int maxLeafLength = 10;
-    private const String parentValue = "";
+    private const String parentValue = ""; // value that parent nodes should hold
     //^ note: the compiler is smart enough to not have duplicates of const values in every instance of the class, iirc all instances of the class share one copy of the consts
     private int length;
     private Node leftChild, rightChild;
@@ -43,31 +43,107 @@ public class Rope
         Node root = new Node(parentValue); //a (necessary) side effect of the short length of the parent node value is that when we create a rope with this value we are guaranteed that it will have no children of its own,
         root.leftChild = p; //, though even if root was given non-null children they would just be overwritten here anyway 
         root.rightChild = q;
+        root.length = p.length + q.length;
         return root;
     }
 
     // (9 marks) Split the rope with root p at index i and return the root of the right subtree
     private Node Split(Node p, int i)
     {
-        // TODO: implement method Split (unclaimed)
-        return null; //placeholder
+        if (i < 0 || i > p.length)
+        { //we can't split outside the rope
+            throw new ArgumentOutOfRangeException("Split encountered invalid index");
+        }
+        //if we hit a leaf node it means we've recursed into the node holding i
+        if (p.leftChild == null && p.rightChild == null)
+        {
+            if (p.value.Length - 1 == i)
+            { //if i is at the end of value then we return nothing as we don't need to cut a value and relocate the cut content (a clean break, if you will)
+                return null;
+            }
+            // if i isn't at the end of value: we cut value, update length accordingly, and return the cut content in a Node for our parents (or the external caller) to handle
+            string cutValue = p.value.Substring(i, p.value.Length - i);
+            p.value = p.value.Substring(0, i);
+            p.length = p.value.Length;
+            return new Node(cutValue);
+        }
+        //end of base case, start of recursing down
+        Node orphan = null;
+        if (p.leftChild != null && i < p.leftChild.length)
+        {
+            orphan = p.Split(p.leftChild, i);
+            //whenever we go left we know the path to the right needs to get split off once we return
+            if (p.rightChild != null)
+            { //if the right child exists we call the subroutine (local function) to find it a home in right child
+                findHomeIn(p.rightChild);
+                //we then make the right child an orphan
+                orphan = p.rightChild;
+                p.rightChild = null;
+            }
+            //if right child doesn't exist then orphan still refers to whatever leftChild recieved from its call, which ultimately gets passed up unmodified
+        }
+        else if (p.rightChild != null && i >= p.leftChild.length)
+        { //the necessary steps when we go right are a lot simpler
+            orphan = p.Split(p.rightChild, i - leftChild.length);
+        }
+        //whether we're returning from a left path or right path, we need to update the local length and pass up the orphan, be it the original cutValue or the newly orphaned rightChild 
+        p.length = (p.leftChild != null ? p.leftChild.length : 0) + (p.rightChild != null ? p.rightChild.length : 0);
+        return orphan;
+
+        // TODO: this local function works but is very bad at maintaining balance, either make it maximize balance or refactor it away into a few lines where it's initially called
+        void findHomeIn(Node foster)
+        { //we're looking for the first available leftChild, if we don't find one we make one at the bottom
+          //if we find a null leftchild before hitting a leaf, we place the orphan there
+            if (orphan == null)
+            {
+                return; //we skip the procedure when orphan is null as that indicates it doesn't really exist
+            }
+            if (foster.leftChild == null && foster.rightChild != null)
+            {
+                foster.leftChild = orphan;
+            }
+            else if (foster.leftChild != null)
+            {//to get here we know that either leftChild isn't null or rightChild is null
+                findHomeIn(foster.leftChild);
+            }
+            else
+            {//if we bypassed the previous conditional we know that leftChild is null, so based on established knowledge we know that rightChild must also be null
+             //therefore we know logically that to get here we must be at a leaf node,
+             //so we convert the leaf into a parent with the orphan to the left and an effective clone of its original self to the right
+                foster.leftChild = orphan;
+                foster.rightChild = new Node(foster.value);
+                foster.value = parentValue;
+            }
+            //no matter what path we ultimately took we still need to update the lengths like this on our way back up
+            foster.length = foster.leftChild.length + foster.rightChild.length;
+        }
     }
+
     // (9 marks) Rebalance the rope using the algorithm found on pages 1319-1320 of Boehm et al.
     private Node Rebalance()
     {
         // TODO: implement method Rebalance (unclaimed)
         return null; //placeholder
     }
+
     // (5 marks) Insert string S at index i
     public void Insert(string S, int i)
-    {
-        // TODO: implement method Insert (unclaimed)
+    { // TODO: improve Insert, currently very quick but VERY dirty implementation
+        if (i < 0 || i > length)
+        {
+            throw new ArgumentOutOfRangeException("Cannot insert outside rope");
+        }
+        rightChild = Concatenate(new Rope(S), Split(this, i));
+        value = parentValue;
+        length = leftChild.length + rightChild.length;
     }
+
     // (5 marks) Delete the substring S[i,j]
     public void Delete(int i, int j)
     {
         // TODO: implement method Delete (unclaimed)
     }
+
     // (6 marks) Return the substring S[i,j]
     public string Substring(int i, int j)
     { // TODO: solve potential off by one error where calling S[i,j] returns S[i,j-1] (THIS COULD BE WORKING AS INTENDED, MAKE SURE BEFORE REALLY LOOKING FOR FIX)
@@ -149,10 +225,11 @@ public class Rope
             return -1;
         }
     }
+
     // (3 marks) Return the character at index i
     public char CharAt(int i)
     {
-        if (leftChild == null && rightChild == null && value.Length >= i && value != "") //base case + error prevention
+        if (leftChild == null && rightChild == null && value.Length >= i && value != parentValue) //base case + error prevention
         {
             return value[i];
         }
@@ -172,7 +249,7 @@ public class Rope
     public int IndexOf(char c)
     {
         return FirstIndexOfC(this); //the local function does all the work
-        //our recursive local function need not use c as a parameter because we are always within scope of the public method 
+                                    //our recursive local function need not use c as a parameter because we are always within scope of the public method 
         int FirstIndexOfC(Node root) //I understand we could just overload IndexOf for the name but I found that a little hard to parse visually tbh, likely due to same parameter count
         { // TODO: (optional) maybe do this more readably, perhaps by making better use of totalLength somehow? 
             int index;
@@ -210,7 +287,7 @@ public class Rope
         //reversing value if leaf
         if (leftChild == null && rightChild == null)
         {
-            String valueReverse = "";
+            String valueReverse = parentValue;
             for (int i = value.Length - 1; i >= 0; i--)
             {
                 valueReverse += value[i];
@@ -245,7 +322,7 @@ public class Rope
             return value;
         }
         //otherwise we recursively append the right child to the left child and return that
-        String fullString = "";
+        String fullString = ""; //this is currently identical to parent value but does NOT represent a parent value so it is defined independently
         if (leftChild != null) // TODO: double check that these conditionals would ever be necessary
         {
             fullString += leftChild.ToString();
@@ -262,7 +339,7 @@ public class Rope
     {
         Console.WriteLine("(Rope): Printing rope...");
         PrintRope(0, this); //we simply use the public method to initiate the private recursive function
-        //using local function vs private method as the function exists only to be used by the parent method, so making usage by other methods possible is semantically incorrect
+                            //using local function vs private method as the function exists only to be used by the parent method, so making usage by other methods possible is semantically incorrect
         void PrintRope(int indentation, Node root)
         { //this approach sort-of breaks when the string is absurdly large as the console window can't get wide enough to show the max indendation and there's no way to turn off word wrapping in the console afaik so it just becomes unreadable, I'd blame MS before ourselves for that though
             String indent = new String('\t', indentation);
@@ -290,7 +367,7 @@ public class Rope
 
 public static class User
 {
-    public static void Main(string[] args) // TODO: let's consider implementing accepting initial arguments, if we don't do that then remove parameters from main before submission
+    public static void Main()
     {
         Console.WriteLine("3020 Assignment 2\nby\nBenjamin Macintosh\nMatthew Hellard\nInput (help) for commands listing\n");
         // we want these variables to persist between loop iterations
@@ -304,7 +381,7 @@ public static class User
             // TODO: IF it proves more work than it's worth to implement decently, remove options functionality, disregard this otherwise
             String[] input = Console.ReadLine().Trim(' ').Split(' ');
 
-            //this section defines the default values for all potential arguments, if the value changes from the default, then it was successfully given as an argument
+            //this section defines the default values for all potential options, if the value changes from the default, then it was successfully given as an argument
             //the names may look a little cryptic but they're just the relevant command and relevant flag stuck together
             String NRp = null;
 
@@ -365,6 +442,36 @@ public static class User
                     {
                         Console.Write("!: Input new rope string :");
                         rope = new Rope(Console.ReadLine());
+                    }
+                    break;
+                case "isi":
+                case "insert substring at index":
+                    String insertIndexString;
+                    String insertString;
+                    if (input.Length == 3)
+                    {
+                        insertString = input[1];
+                        insertIndexString = input[2];
+                    }
+                    else
+                    {
+                        Console.Write("Input string to insert :");
+                        insertString = Console.ReadLine();
+                        Console.Write("Input index to insert at :");
+                        insertIndexString = Console.ReadLine();
+                    }
+                    try
+                    {
+                        int insertIndex = int.Parse(insertIndexString);
+                        rope.Insert(insertString, insertIndex);
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("!: Could not resolve index input to int");
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        Console.WriteLine("!: Given index out of bounds");
                     }
                     break;
                 case "gsr":
@@ -508,7 +615,7 @@ public static class User
                         "!: All subsequent arguments/options past command optional, order of options shown is only valid order of input\n" +
                         "-Help (h)\n" + //implemented
                         "-New Rope (nr) <string to use> || (nr) -p <path to file containing string>\n" + //implemented
-                        "-Insert Substring at Index (isi)\n" +
+                        "-Insert Substring at Index (isi) <string to insert> <index>\n" +
                         "-Delete Substring in Range (dsr)\n" +
                         "-Get Substring in Range (gsr) <start index> <end index>\n" + //implemented
                         "-Find first Substring (fs) <substring to find>\n" + //implemented

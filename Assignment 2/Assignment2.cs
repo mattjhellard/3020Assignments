@@ -1,6 +1,9 @@
 ﻿using System;
 using Node = Rope; // iirc "nodes" in this context are same as "ropes" and vice versa, this makes it official, can refactor away if need be
-using System.IO; //NOTE: Rope does NOT make use of this at all, only utilized in Main to quickly insert HUGE strings as inputs for Rope
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Diagnostics.Eventing.Reader; //NOTE: Rope does NOT make use of this at all, only utilized in Main to quickly insert HUGE strings as inputs for Rope
 
 public class Rope
 {
@@ -82,9 +85,10 @@ public class Rope
             }
             //if right child doesn't exist then orphan still refers to whatever leftChild recieved from its call, which ultimately gets passed up unmodified
         }
+        //note from Ben: had to add p.leftChild as it wasn't working as intended with just leftChild
         else if (p.rightChild != null && i >= p.leftChild.length)
         { //the necessary steps when we go right are a lot simpler
-            orphan = p.Split(p.rightChild, i - leftChild.length);
+            orphan = p.Split(p.rightChild, i - p.leftChild.length);
         }
         //whether we're returning from a left path or right path, we need to update the local length and pass up the orphan, be it the original cutValue or the newly orphaned rightChild 
         p.length = (p.leftChild != null ? p.leftChild.length : 0) + (p.rightChild != null ? p.rightChild.length : 0);
@@ -120,10 +124,12 @@ public class Rope
     }
 
     // (9 marks) Rebalance the rope using the algorithm found on pages 1319-1320 of Boehm et al.
+    //Ben is still working on this section just didn't want to include yet as it is still nt sufficient
     private Node Rebalance()
     {
-        // TODO: implement method Rebalance (unclaimed)
-        return null; //placeholder
+       
+
+        return null; // place holder
     }
 
     // (5 marks) Insert string S at index i
@@ -141,7 +147,20 @@ public class Rope
     // (5 marks) Delete the substring S[i,j]
     public void Delete(int i, int j)
     {
-        // TODO: implement method Delete (unclaimed)
+        // TODO: implement method Delete (Ben)
+        //fairly simple and "dirty" way to delete substrings
+        //check to make sure i, and j exist within the substring
+        //TODO: change so that rope is updated, currently not functioning properly
+        if (i<0 | i>j | j>=length)
+        {
+            throw new ArgumentOutOfRangeException("Invalid substring");
+        }
+        //concatenates the original minus the substring with the right tree
+        
+        Node toDelete = Split(this, i);  
+        //newRight.Rebalance();
+        Node newRight = Split(toDelete, j - i);
+        Concatenate(this, newRight);
     }
 
     // (6 marks) Return the substring S[i,j]
@@ -508,6 +527,15 @@ public static class User
                     {
                         Console.WriteLine("!: Start index must be less than end index");
                     }
+                    break;
+                case "delete":
+                case "dsr":
+                    //For ben to do: need to set checks around start and end ints just set this up to see if it is working.
+                    Console.WriteLine("Enter the starting index (int) of the string you wish to remove:");
+                    int toDeleteStart = Convert.ToInt32(Console.ReadLine());
+                    Console.WriteLine("Enter the ending index (int) of the string you wish to remove:");
+                    int toDeleteEnd = Convert.ToInt32(Console.ReadLine());
+                    rope.Delete(toDeleteStart, toDeleteEnd);
                     break;
                 case "fs":
                 case "find substring":

@@ -116,9 +116,8 @@ public class Rope
 
     // (9 marks) Rebalance the rope using the algorithm found on pages 1319-1320 of Boehm et al.
     private Node Rebalance()
-    {
-        // TODO: implement method Rebalance (unclaimed)
-        return null; //placeholder
+    { //this is what happens when you put off the hard methods till the last minute
+        return new Node(this.ToString());
     }
 
     // (5 marks) Insert string S at index i
@@ -139,7 +138,6 @@ public class Rope
         value = parentValue;
         leftChild = rootClone;
         rightChild = newRight;
-        value = parentValue;
         length = leftChild.length + rightChild.length;
         //now we rebalance the rope since our insert does a very bad job at maintaining balance, like concatenation, we need to do it in a much messier way as we can't address root directly in a writing context
         Node rebalanced = Rebalance();
@@ -152,7 +150,32 @@ public class Rope
     // (5 marks) Delete the substring S[i,j]
     public void Delete(int i, int j)
     {
-        // TODO: implement method Delete (unclaimed)
+        if (i < 0 || j > length)
+        {
+            throw new ArgumentOutOfRangeException("Cannot delete outside rope");
+        }
+        if(j < i)
+        {
+            throw new ArgumentException("Start index cannot be greater than end index");
+        }
+        //new right = concatenation of our input string converted to a rope and everything right of i in the original rope
+        Node newRight = Split(Split(this, i), j - i);
+        //we're cloning the original root to make it the new leftchild
+        Node rootClone = new Node(value);
+        rootClone.length = length;
+        rootClone.leftChild = leftChild;
+        rootClone.rightChild = rightChild;
+        //this is effectively an unofficial concatenation since we can't do it officially on the root
+        value = parentValue;
+        leftChild = rootClone;
+        rightChild = newRight;
+        length = leftChild.length + rightChild.length;
+        //now we rebalance the rope since our insert does a very bad job at maintaining balance, like concatenation, we need to do it in a much messier way as we can't address root directly in a writing context
+        Node rebalanced = Rebalance();
+        value = rebalanced.value;
+        length = rebalanced.length;
+        leftChild = rebalanced.leftChild;
+        rightChild = rebalanced.rightChild;
     }
 
     // (6 marks) Return the substring S[i,j]
@@ -473,14 +496,14 @@ public static class User
                         insertIndexString = input[2];
                     }
                     else
-                    {
+                    { //default case
                         Console.Write("Input string to insert :");
                         insertString = Console.ReadLine();
                         Console.Write("Input index to insert at :");
                         insertIndexString = Console.ReadLine();
                     }
                     try
-                    {
+                    { //we generally don't print notifications when a necessity for that isn't implied, in inspiration by better terminals/shells, where no notification for many operations means they worked
                         int insertIndex = int.Parse(insertIndexString);
                         rope.Insert(insertString, insertIndex);
                     }
@@ -491,6 +514,41 @@ public static class User
                     catch (ArgumentOutOfRangeException e)
                     {
                         Console.WriteLine("!: " + e.Message);
+                    }
+                    break;
+                case "dsr":
+                case "delete substring in range":
+                    String iDeleteString;
+                    String jDeleteString;
+                    if (input.Length >= 3)
+                    {
+                        iDeleteString = input[1];
+                        jDeleteString = input[2];
+                    }
+                    else
+                    { //default case
+                        Console.Write("!: Input first int :");
+                        iDeleteString = Console.ReadLine();
+                        Console.Write("!: Input second int :");
+                        jDeleteString = Console.ReadLine();
+                    }
+                    try
+                    {
+                        int i = Convert.ToInt32(iDeleteString);
+                        int j = Convert.ToInt32(jDeleteString);
+                        rope.Delete(i, j);
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("!: Could not convert argument(s) to int");
+                    }
+                    catch (ArgumentOutOfRangeException e)
+                    {
+                        Console.WriteLine("!: "+e.Message);
+                    }
+                    catch (ArgumentException)
+                    {
+                        Console.WriteLine("!: Start index must be less than end index");
                     }
                     break;
                 case "gsr":

@@ -25,7 +25,7 @@ public class Rope
             value = parentValue; //note: as of writing the value held in a parent node is never actually used
             int splitIndex = (int)length / 2; //this cast effectively rounds down, the result of this is if totalLength is odd then the right child always gets the extra char
             leftChild = Build(S, 0, splitIndex); //build basically returns whatever THIS constructor makes when the substring defined in the arguments is fed back into it
-            rightChild = Build(S, splitIndex, length); // TODO: explain why the end of leftChild should have the same value as the start of rightChild
+            rightChild = Build(S, splitIndex, length);
         }
     }
 
@@ -183,7 +183,7 @@ public class Rope
 
     // (6 marks) Return the substring S[i,j]
     public string Substring(int i, int j)
-    { // TODO: solve potential off by one error where calling S[i,j] returns S[i,j-1] (THIS COULD BE WORKING AS INTENDED, MAKE SURE BEFORE REALLY LOOKING FOR FIX)
+    {  
         if (i > j)
         {
             throw new ArgumentException();
@@ -216,7 +216,7 @@ public class Rope
 
     // (9 marks) Return the index of the first occurrence of S; -1 otherwise
     public int Find(string S)
-    { // TODO: do this better
+    {
         if (S.Length == 0) //immediately obvious fail case(s)
         { //failing when given string is empty both makes some sense semantically and makes the process much easier
             return -1;
@@ -288,7 +288,7 @@ public class Rope
         return FirstIndexOfC(this); //the local function does all the work
                                     //our recursive local function need not use c as a parameter because we are always within scope of the public method 
         int FirstIndexOfC(Node root) //I understand we could just overload IndexOf for the name but I found that a little hard to parse visually tbh, likely due to same parameter count
-        { // TODO: (optional) maybe do this more readably, perhaps by making better use of totalLength somehow? 
+        { 
             int index;
             if (root.leftChild != null && (index = FirstIndexOfC(root.leftChild)) != -1)
             {
@@ -360,7 +360,7 @@ public class Rope
         }
         //otherwise we recursively append the right child to the left child and return that
         String fullString = ""; //this is currently identical to parent value but does NOT represent a parent value so it is defined independently
-        if (leftChild != null) // TODO: double check that these conditionals would ever be necessary
+        if (leftChild != null)
         {
             fullString += leftChild.ToString();
         }
@@ -461,7 +461,7 @@ public static class User
                                 path = @NRp; //prepending string with @ has the string be taken as verbatim literal, which means \ are treated literally rather than as escape characters 
                             }
                             else //if given path isn't absolute we assume it's relative to local root, which depends on where compiled code is running from
-                            { //TODO: remove this comment by submission: current directory when running from VS will by default be: ...\3020Assignments\Assignment 2\bin\Debug
+                            { 
                                 path = @Directory.GetCurrentDirectory() + @"\" + @NRp;
                             }
                             if (!File.Exists(path)) //we escape the structure if we can't find the file by throwing an exception and catching it outside the structure
@@ -696,7 +696,7 @@ public static class User
                         "-Help (h)\n" + //implemented
                         "-New Rope (nr) <string to use> || (nr) -p <path to file containing string>\n" + //implemented
                         "-Insert Substring at Index (isi) <string to insert> <index>\n" + //implemented
-                        "-Delete Substring in Range (dsr)\n" +
+                        "-Delete Substring in Range (dsr) <start index> <end index>\n" + //implemented
                         "-Get Substring in Range (gsr) <start index> <end index>\n" + //implemented
                         "-Find first Substring (fs) <substring to find>\n" + //implemented
                         "-Get Character at Index (gci) <int index to search in>\n" + //implemented

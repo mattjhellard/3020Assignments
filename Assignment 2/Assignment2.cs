@@ -74,8 +74,8 @@ public class Rope
             orphan = p.Split(p.leftChild, i);
             //whenever we go left we know the path to the right needs to get split off once we return
             if (p.rightChild != null)
-            { //if the right child exists we call the subroutine (local function) to find it a home in right child
-                findHomeIn(p.rightChild);
+            { //if the right child exists we simply concatenate right child to orphan, and make that the new right child
+                p.rightChild = Concatenate(orphan, p.rightChild);
                 //we then make the right child an orphan
                 orphan = p.rightChild;
                 p.rightChild = null;
@@ -84,39 +84,34 @@ public class Rope
         }
         else if (p.rightChild != null && i >= p.leftChild.length)
         { //the necessary steps when we go right are a lot simpler
-            orphan = p.Split(p.rightChild, i - leftChild.length);
+            orphan = p.Split(p.rightChild, i - p.leftChild.length);
+        }
+        //attempting to compress on way up, values should only be at leaves so non leaves with any null children ideally shouldn't exist
+        if (p.leftChild != null)
+        { //we always compress our children rather than ourselves
+            if (p.leftChild.leftChild != null && p.leftChild.rightChild == null)
+            { //if leftchild can be compressed to its leftchild
+                p.leftChild = p.leftChild.leftChild;
+            }
+            else if (p.leftChild.leftChild == null && p.leftChild.rightChild != null)
+            { //if leftchild can be compressed to its rightchild
+                p.leftChild = p.leftChild.rightChild;
+            }
+        }
+        if (p.rightChild != null) //same as above but with rightchild
+        {
+            if (p.rightChild.leftChild != null && p.rightChild.rightChild == null)
+            {
+                p.rightChild = p.rightChild.leftChild;
+            }
+            else if (p.rightChild.leftChild == null && p.rightChild.rightChild != null)
+            {
+                p.rightChild = p.rightChild.rightChild;
+            }
         }
         //whether we're returning from a left path or right path, we need to update the local length and pass up the orphan, be it the original cutValue or the newly orphaned rightChild 
         p.length = (p.leftChild != null ? p.leftChild.length : 0) + (p.rightChild != null ? p.rightChild.length : 0);
         return orphan;
-
-        // TODO: this local function works but is very bad at maintaining balance, either make it maximize balance or refactor it away into a few lines where it's initially called
-        void findHomeIn(Node foster)
-        { //we're looking for the first available leftChild, if we don't find one we make one at the bottom
-          //if we find a null leftchild before hitting a leaf, we place the orphan there
-            if (orphan == null)
-            {
-                return; //we skip the procedure when orphan is null as that indicates it doesn't really exist
-            }
-            if (foster.leftChild == null && foster.rightChild != null)
-            {
-                foster.leftChild = orphan;
-            }
-            else if (foster.leftChild != null)
-            {//to get here we know that either leftChild isn't null or rightChild is null
-                findHomeIn(foster.leftChild);
-            }
-            else
-            {//if we bypassed the previous conditional we know that leftChild is null, so based on established knowledge we know that rightChild must also be null
-             //therefore we know logically that to get here we must be at a leaf node,
-             //so we convert the leaf into a parent with the orphan to the left and an effective clone of its original self to the right
-                foster.leftChild = orphan;
-                foster.rightChild = new Node(foster.value);
-                foster.value = parentValue;
-            }
-            //no matter what path we ultimately took we still need to update the lengths like this on our way back up
-            foster.length = foster.leftChild.length + foster.rightChild.length;
-        }
     }
 
     // (9 marks) Rebalance the rope using the algorithm found on pages 1319-1320 of Boehm et al.
@@ -128,14 +123,30 @@ public class Rope
 
     // (5 marks) Insert string S at index i
     public void Insert(string S, int i)
-    { // TODO: improve Insert, currently very quick but VERY dirty implementation
+    {
         if (i < 0 || i > length)
         {
             throw new ArgumentOutOfRangeException("Cannot insert outside rope");
         }
-        rightChild = Concatenate(new Rope(S), Split(this, i));
+        //new right = concatenation of our input string converted to a rope and everything right of i in the original rope
+        Node newRight = Concatenate(new Rope(S), Split(this, i));
+        //we're cloning the original root to make it the new leftchild
+        Node rootClone = new Node(value);
+        rootClone.length = length;
+        rootClone.leftChild = leftChild;
+        rootClone.rightChild = rightChild;
+        //this is effectively an unofficial concatenation since we can't do it officially on the root
+        value = parentValue;
+        leftChild = rootClone;
+        rightChild = newRight;
         value = parentValue;
         length = leftChild.length + rightChild.length;
+        //now we rebalance the rope since our insert does a very bad job at maintaining balance, like concatenation, we need to do it in a much messier way as we can't address root directly in a writing context
+        Node rebalanced = Rebalance();
+        value = rebalanced.value;
+        length = rebalanced.length;
+        leftChild = rebalanced.leftChild;
+        rightChild = rebalanced.rightChild;
     }
 
     // (5 marks) Delete the substring S[i,j]
@@ -164,7 +175,7 @@ public class Rope
         //if i is greater than or equal (indices zero based) to leftchild length then the whole substring is in rightchild (i <= j)
         if (rightChild != null && i >= leftChild.length)
         { //must adjust indices for removal of leftChild from context
-            return rightChild.Substring(i - leftChild.Length, j - leftChild.Length);
+            return rightChild.Substring(i - leftChild.length, j - leftChild.length);
         }
         //if i < leftChild length while j > leftChild length then the substring is split between both children, we append what we get back from left with what we get back from right
         if (leftChild != null && i < leftChild.length && rightChild != null && j >= leftChild.length)
@@ -378,11 +389,11 @@ public static class User
             Console.Write("Input :");
             //we tokenize the user input (space separated) to enable inputting all required data for a command at once, similar to any real CLI
             //like a CLI, we want to include options (ex: -l)
-            // TODO: IF it proves more work than it's worth to implement decently, remove options functionality, disregard this otherwise
             String[] input = Console.ReadLine().Trim(' ').Split(' ');
 
             //this section defines the default values for all potential options, if the value changes from the default, then it was successfully given as an argument
             //the names may look a little cryptic but they're just the relevant command and relevant flag stuck together
+            //we ultimately ended up with just the one option/flag, but this implementation is still the most scalable for option/flag support in future projects, so I'm leaving it as is for future reference
             String NRp = null;
 
             //this loop runs through the user input and assigns arguments for flags as appropriate, it does not make particular effort to protect the user from data entry errors
@@ -400,9 +411,17 @@ public static class User
             {
                 case "nr":
                 case "new rope":
-                    if (input.Length == 2) //if one arg given after command we assume we are to use it as the input for the rope 
+                    if (input.Length >= 2 && NRp == null) //if args given and NRp isn't set we assume args are to be taken as the entire input string
                     {
-                        rope = new Rope(input[1]);
+                        String nrInputString = "";
+                        //this loop is a consequence of us tokenizing the initial input by space, to enable inputting strings with spaces we have to first rebuild it
+                        for (int i = 1; i < input.Length - 1; i++)
+                        {
+                            nrInputString += input[i] + " "; //we have to re-add in the spaces as the tokenization didn't keep them
+                        }
+                        //we skip the final bit of the array in the loop so we can treat it differently (not append with space)
+                        nrInputString += input[input.Length - 1];
+                        rope = new Rope(nrInputString);
                     }
                     else if (NRp != null) //if path was given
                     {
@@ -469,9 +488,9 @@ public static class User
                     {
                         Console.WriteLine("!: Could not resolve index input to int");
                     }
-                    catch (ArgumentOutOfRangeException)
+                    catch (ArgumentOutOfRangeException e)
                     {
-                        Console.WriteLine("!: Given index out of bounds");
+                        Console.WriteLine("!: " + e.Message);
                     }
                     break;
                 case "gsr":
@@ -615,7 +634,7 @@ public static class User
                         "!: All subsequent arguments/options past command optional, order of options shown is only valid order of input\n" +
                         "-Help (h)\n" + //implemented
                         "-New Rope (nr) <string to use> || (nr) -p <path to file containing string>\n" + //implemented
-                        "-Insert Substring at Index (isi) <string to insert> <index>\n" +
+                        "-Insert Substring at Index (isi) <string to insert> <index>\n" + //implemented
                         "-Delete Substring in Range (dsr)\n" +
                         "-Get Substring in Range (gsr) <start index> <end index>\n" + //implemented
                         "-Find first Substring (fs) <substring to find>\n" + //implemented

@@ -1,9 +1,9 @@
 ﻿using System;
 using Node = Rope; // iirc "nodes" in this context are same as "ropes" and vice versa, this makes it official, can refactor away if need be
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
-using System.Diagnostics.Eventing.Reader; //NOTE: Rope does NOT make use of this at all, only utilized in Main to quickly insert HUGE strings as inputs for Rope
+using System.IO; //NOTE: Rope does NOT make use of this at all, only utilized in Main to quickly insert HUGE strings as inputs for Rope
+using System.Collections.Generic;  //Ben is trying to make use of this for rebalance as list and queue make node collection simple
+
+
 
 public class Rope
 {
@@ -124,12 +124,119 @@ public class Rope
     }
 
     // (9 marks) Rebalance the rope using the algorithm found on pages 1319-1320 of Boehm et al.
-    //Ben is still working on this section just didn't want to include yet as it is still nt sufficient
+    //TODO: implement rebalance properly
+    //Ben is still working on this section just didn't want to include yet as it is still not sufficient
+    //Used queue to do this
     private Node Rebalance()
     {
-       
+        List<Node> leafnodes = new List<Node>();
+        Node copy = this;
+        leafNodes(this);
+        Node Rebalanced=rebalance(leafnodes);
+        void leafNodes(Node node)
+        {   
+            Queue<Node> toExamine = new Queue<Node>();
+            //begin loop
+            toExamine.Enqueue(this);
+            while (toExamine.Count > 0)
+            {
+                Node examineNode = toExamine.Dequeue();
+                if (examineNode.rightChild != null)
+                {
+                    toExamine.Enqueue(examineNode.rightChild);
+                }
+                if (examineNode.leftChild != null)
+                {
+                    toExamine.Enqueue(examineNode.leftChild);
+                }
+                else
+                {
+                    leafnodes.Add(examineNode);
+                }
+            }
+            leafnodes.Reverse();
+        }
 
-        return null; // place holder
+        Node rebalance(List<Node>list)
+        {
+            Node balanced = null;
+            int i = 0;
+            int j = 0;
+            long[] fibonacci = {1L, 2L, 3L, 5L, 8L, 13L, 21L, 34L, 55L, 89L, 144L, 233L, 377L,
+                610L, 987L, 1597L, 2584L, 4181L, 6765L, 10946L, 17711L, 28657L, 46368L, 75025L, 121393L,
+                196418L, 317811L, 514229L, 832040L, 1346269L, 2178309L, 3524578L, 5702887L, 9227465L, 14930352L,
+                24157817L, 39088169L, 63245986L, 102334155L, 165580141L, 267914296L, 433494437L, 701408733L, 1134903170L,
+                1836311903L, 2971215073L, 4807526976L, 7778742049L, 12586269025L, 20365011074L, 32951280099L, 53316291173L,
+                86267571272L, 139583862445L, 225851433717L, 365435296162L, 591286729879L, 956722026041L, 1548008755920L,
+                2504730781961L, 4052739537881L, 6557470319842L, 10610209857723L, 17167680177565L, 27777890035288L,
+                44945570212853L, 72723460248141L, 117669030460994L, 190392490709135L, 308061521170129L, 498454011879264L,
+                806515533049393L, 1304969544928657L, 2111485077978050L, 3416454622906707L, 5527939700884757L,
+                8944394323791464L, 14472334024676221L, 23416728348467685L, 37889062373143906L, 61305790721611591L,
+                99194853094755497L, 160500643816367088L, 259695496911122585L, 420196140727489673L, 679891637638612258L,
+                1100087778366101931L, 1779979416004714189L, 2880067194370816120L, 4660046610375530309L, 7540113804746346429L };
+            Node[] toBalance = new Node[fibonacci.Length];
+            int intervalLow = 0;
+            int intervalHigh = 1;
+            while (i < list.Count) 
+            {
+                if (list[i].length >= fibonacci[intervalLow] && list[i].length < fibonacci[intervalHigh])
+                {
+                     if (j < intervalLow && toBalance[j] == null)
+                    {
+                        j++;
+                    }
+                    //if we find a node along the way to our end goal
+                    else if (j < intervalLow && toBalance[j] != null)
+                    {
+                        //concatenate 
+                        toBalance[j] = Concatenate(toBalance[j], list[i]);
+                        //store in list to we can move to new spot
+                        list[i] = toBalance[j];
+                        //set previous spot to null
+                        toBalance[j] = null;
+                    }
+                    else if (j >= intervalLow && toBalance[j] == null)
+                    {
+                        //if spot is empty simply set spot to be the node
+                        toBalance[j] = list[i];
+                        //move to next item in list
+                        i++;
+                        //reset pointers to zero
+                        j = 0;
+                        intervalLow = 0;
+                        intervalHigh = 1;
+                    }
+                    else
+                    {
+                        //concatenate the nodes
+                        toBalance[j] = Concatenate(toBalance[j], list[i]);
+                        //set list to be node
+                        list[i] = toBalance[j];
+                        toBalance[j]= null;
+                        if (list[i].length == copy.length)
+                        {
+                            //set value
+                            balanced = toBalance[j];
+                            return balanced;
+                        }
+                        else
+                        {
+                            j = 0;
+                            intervalLow = 0;
+                            intervalHigh = 1;
+                        }
+                    }
+                }
+                else
+                {
+                    intervalLow++;
+                    intervalHigh++;
+                }
+            }
+            balanced = toBalance[j];
+            return balanced;
+        }
+        return Rebalanced; // place holder
     }
 
     // (5 marks) Insert string S at index i
@@ -156,11 +263,14 @@ public class Rope
             throw new ArgumentOutOfRangeException("Invalid substring");
         }
         //concatenates the original minus the substring with the right tree
-        
+
+        Node root = this; 
         Node toDelete = Split(this, i);  
-        //newRight.Rebalance();
+        //TODO: need to make conditions for when to call rebalance but for now I am just testing
+        toDelete.Rebalance();
         Node newRight = Split(toDelete, j - i);
-        Concatenate(this, newRight);
+        //TODO: Fix assignment of value so that delete actually does something to the end result
+        Node newRope = Concatenate(this, newRight);
     }
 
     // (6 marks) Return the substring S[i,j]
@@ -388,6 +498,7 @@ public static class User
 {
     public static void Main()
     {
+        //TODO: Ben needs to update menus to ensure consistency
         Console.WriteLine("3020 Assignment 2\nby\nBenjamin Macintosh\nMatthew Hellard\nInput (help) for commands listing\n");
         // we want these variables to persist between loop iterations
         bool run = true;
@@ -530,12 +641,38 @@ public static class User
                     break;
                 case "delete":
                 case "dsr":
-                    //For ben to do: need to set checks around start and end ints just set this up to see if it is working.
-                    Console.WriteLine("Enter the starting index (int) of the string you wish to remove:");
-                    int toDeleteStart = Convert.ToInt32(Console.ReadLine());
-                    Console.WriteLine("Enter the ending index (int) of the string you wish to remove:");
-                    int toDeleteEnd = Convert.ToInt32(Console.ReadLine());
-                    rope.Delete(toDeleteStart, toDeleteEnd);
+                    String startString;
+                    String endString;
+                    if (input.Length >=2)
+                    {
+                        startString = input[1];
+                        endString = input[2];
+                    }
+                    else
+                    {
+                        Console.WriteLine("!: Input first int :");
+                        startString = Console.ReadLine();
+                        Console.WriteLine("!: Input second int :");
+                        endString = Console.ReadLine();
+                    }
+                    try
+                    {
+                        int start = Convert.ToInt32(startString);
+                        int end = Convert.ToInt32(endString);
+                        rope.Delete(start, end);
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("!: Could not convert argument(s) to int");
+                    }
+                    catch (ArgumentOutOfRangeException) 
+                    {
+                        Console.WriteLine("!: Given argument out of range");
+                    }
+                    catch (ArgumentException)
+                    {
+                        Console.WriteLine("!: Start index must be less than end index");
+                    }
                     break;
                 case "fs":
                 case "find substring":
@@ -644,7 +781,7 @@ public static class User
                         "-Help (h)\n" + //implemented
                         "-New Rope (nr) <string to use> || (nr) -p <path to file containing string>\n" + //implemented
                         "-Insert Substring at Index (isi) <string to insert> <index>\n" +
-                        "-Delete Substring in Range (dsr)\n" +
+                        "-Delete Substring in Range (dsr) <start index> <end index>\n" + //Semi-Implemented TODO: make sure implemented properly and remove this before submission
                         "-Get Substring in Range (gsr) <start index> <end index>\n" + //implemented
                         "-Find first Substring (fs) <substring to find>\n" + //implemented
                         "-Get Character at Index (gci) <int index to search in>\n" + //implemented

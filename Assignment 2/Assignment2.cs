@@ -75,7 +75,10 @@ public class Rope
             //whenever we go left we know the path to the right needs to get split off once we return
             if (p.rightChild != null)
             { //if the right child exists we simply concatenate right child to orphan, and make that the new right child
-                p.rightChild = Concatenate(orphan, p.rightChild);
+                if (orphan != null) //can happen during clean split (no initial orphan), in which case we effectively just drop it and pick up rightChild
+                {
+                    p.rightChild = Concatenate(orphan, p.rightChild);
+                }
                 //we then make the right child an orphan
                 orphan = p.rightChild;
                 p.rightChild = null;
@@ -154,7 +157,7 @@ public class Rope
         {
             throw new ArgumentOutOfRangeException("Cannot delete outside rope");
         }
-        if(j < i)
+        if (j < i)
         {
             throw new ArgumentException("Start index cannot be greater than end index");
         }
@@ -544,7 +547,7 @@ public static class User
                     }
                     catch (ArgumentOutOfRangeException e)
                     {
-                        Console.WriteLine("!: "+e.Message);
+                        Console.WriteLine("!: " + e.Message);
                     }
                     catch (ArgumentException)
                     {

@@ -3,22 +3,22 @@ using System;
 
 public class TwoThreeFourTree<T> where T : IComparable<T>
 {
-    //the Node class doesn't know that it's in a 2-3-4 tree
-    private class Node<T>
-    {
+    //the Node class doesn't know that it's in a 2-3-4 tree specifically, but it knows it's a private member of a btree, so its datamembers are open to that tree
+    private class Node<I>
+    { // ^ we've chosen to use a separate type parameter for Node even though it will always ultimately be made the same as the outer tree class
         // essential datamembers
-        private T[] keys;
-        private Node<T>[] children;
+        public I[] keys;
+        public Node<I>[] children;
         // meta datamembers
-        private bool leaf;
-        private int numKeys;
+        public bool leaf; // TODO: check this datamember is used before submission, else, remove
+        public int numKeys;
 
         public Node(int t)
         {
             numKeys = 0;
             leaf = true;
-            children = new Node<T>[2 * t];
-            keys = new T[2 * t - 1];
+            children = new Node<I>[2 * t];
+            keys = new I[2 * t - 1];
         }
     }
 
@@ -49,8 +49,30 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
     // (4 marks) Search for key k, true if found, false otherwise
     public bool Search(T k)
     {
-        // TODO: implement Search
-        return false; //placeholder
+        return SearchRecurse(root);
+
+        //using a local function so we can run recursively in a semantically sound way (a seperate private method that is only called by this method would be the alternative) and so we can call the recursion without re-passing k
+        bool SearchRecurse(Node<T> p)
+        {
+            if(p == null) //if we've recursed into a null Node it means the value can't be found
+            {
+                return false;
+            }
+            for (int i = 0; i < p.numKeys; i++)
+            {
+                int diff = k.CompareTo(p.keys[i]);
+                if (diff == 0) //hit at current key
+                {
+                    return true;
+                }
+                if (diff < 0) //if the given key is less than the currently checked key, 
+                { //, then we should recurse into the child at i (in a visualization, that's the child immediately LEFT of the current key)
+                    return SearchRecurse(p.children[i]);
+                }
+            }
+            //if we escape the for loop then the only spot left to search is the final child
+            return SearchRecurse(p.children[p.numKeys]);
+        }
     }
 
     // (8 marks) Build and return equivalent red-black tree

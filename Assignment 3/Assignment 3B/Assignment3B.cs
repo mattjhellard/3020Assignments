@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 //implemented using Dr. Patrick's code for Binomial Heaps as starting point
 //TODO: Ensure commenting and formatting is consistent with Matthew's coding (Ben)
 
@@ -104,15 +103,16 @@ namespace LazyBinomialHeap
                     break; //ends for loop, as we have found highest
                 }
             }
-            if (curr == null)
+            if (curr == null) // if not found
             {
                 throw new Exception("Item not found in Lazy heap");
             }
             if (prev != null)
             {
-                prev.Sibling = curr.Sibling;
+                prev.Sibling = curr.Sibling; //sets previous sibling to be current's
+                //sibling, since current is the node we want to delete
             }
-            else
+            else //this would be if the node we want to delete has no prior siblings
             {
                 B[curr.Degree] = curr.Sibling;
             }
@@ -151,7 +151,9 @@ namespace LazyBinomialHeap
                 child = next;
             }
             size--;
-            // update highP before calling coalesce
+            // update highP before calling coalesce, updating highP here because it is used in coalesce
+            //need to reavaluate this as it only takes into account the first element in each index
+            //I.E. wont work as intended if we have 7-4-13 it will set 7 as highP 
             highP = null;
             for (int i = 0; i < B.Length; i++)
             {
@@ -160,18 +162,91 @@ namespace LazyBinomialHeap
                     highP = B[i];
                 }
             }
-            Coalesce(); //only called by remove, cleans up the root mess left by add
+            //TODO: add check if the heap is empty we dont need coalesce
+            if (highP != null)
+            {
+                Coalesce(); //only called by remove, cleans up the root mess left by add
+            }
+            else
+            {
+                return;
+            }
         }
         //TODO: Implement Coalesce (9 marks)
+        // The Coalesce method is similar to Consolidation.  Starting with binomial trees of size 1,
+        // it combines pairs of trees of the same size until there is at most one instance of a
+        // binomial tree of any given size.  Note that when two trees of size 2^k in the root list of B[k]
+        // are combined, the resultant tree has size 2^(k+1) and is placed in the root list of B[k+1].
         private void Coalesce()
         {
+            //setting up our pointers
+            LazyBinomialNode<T> next, curr;
+            //if the tree is empty, dont need to coalesce
+            if (B.Length == 0)
+                return;
+            for (int i = 0; i < B.Length; i++) //check loop logic
+            {
+                if (B[i] == null) // if there is nothing at this index we dont need to do anything
+                {
+                    continue;
+                }
+                else if (B[i].Sibling == null) //if there is no sibling we don't need to do anything at this index
+                {
+                    continue;
+                }
+                else
+                {
+                    curr = B[i];
+                    next = curr.Sibling;
+                }
+                //merge trees with same degree until each degree has at most one tree
+                while (B[i] != null)
+                {
+                    //need a check for when to break this otherwise it doesn't work
+                    if (B[i].Sibling != null)
+                    {
+                        //determine which node should become the root/parent
+                        //if current has higherP make next the child
+                        if (curr.Item.CompareTo(next.Item) > 0)
+                        {
+                            //make next a child of curr
+                            curr.Sibling = next.Sibling;
+                            curr.Child = next;
+                            curr.Degree++;
+                        }
+                        else
+                        {
+                            //make curr a child of next
+                            next.Child = curr;
+                            curr = next;
+                            curr.Degree++;
+                        }
+                        B[i] = null; // remove merged tree from root list
+                    }
+                    else //maybe dont need this just putting here because we may need stuff here
+                    {
+                        break;
+                    }
+                }
+                if (B[curr.Degree] == null) // if the degree is empty we can put the new tree there no problem
+                {
+                    B[curr.Degree] = curr;
+                }
+                else
+                {
+                    B[curr.Degree].Sibling = curr; // need to look into this just a stop gap measure
+                }
+            }
 
         }
         //TODO: implement print (5 marks)
         //need to do it in a way that properly highlights the data structure
         public void Print()
         {
+            for (int i = 0; i <B.Length; i++)
+            {
 
+            }
         }
     }
     //test class
@@ -181,8 +256,9 @@ namespace LazyBinomialHeap
         public static void Main(string[] args)
         {
             LazyBinomialHeap<int> lazyheap = new LazyBinomialHeap<int>();
+            bool TorF = false;
 
-            while (true)
+            while (!TorF)
             {
                 Console.WriteLine("Enter operation (add, remove, print, front, and exit):");
                 string toDo = Console.ReadLine().ToLower().Trim();
@@ -202,9 +278,10 @@ namespace LazyBinomialHeap
                         lazyheap.Print();
                         break;
                     case "front":
-                        Console.WriteLine("Curremt front is: " + lazyheap.Front());
+                        Console.WriteLine("Current front is: " + lazyheap.Front());
                         break;
                     case "exit":
+                        TorF = true;
                         break;
                     default:
                         Console.WriteLine("Invalid input please try again");

@@ -153,8 +153,36 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
     // (10 marks) Delete key k, true if successful, false otherwise
     public bool Delete(T k)
     {
-        // TODO: implement Delete
-        return false; //placeholder
+        return DeleteRecurse(root);
+
+        bool DeleteRecurse(Node<T> curr)
+        {
+            if(curr.numKeys == 0) //we can't delete what's not there
+            { //can only get here if we recurse into an empty node which can only happen if the value we're trying to delete isn't in the tree
+                return false;
+            }
+            for(int i=0; i<curr.numKeys; i++)
+            {
+                int diff = k.CompareTo(curr.keys[i]);
+                if(diff < 0)
+                { //if we should recurse
+                    return DeleteRecurse(curr.children[i]);
+                }
+                if(diff == 0) //hit
+                {
+                    //shift everything left and overwrite the location of the hit to delete
+                    for(int j=i; j<curr.numKeys-1; j++)
+                    {
+                        curr.keys[j] = curr.keys[j + 1];
+                        curr.children[j] = curr.children[j + 1];
+                    }
+                    curr.children[curr.numKeys-1] = curr.children[curr.numKeys];
+                    return true;
+                }
+            }
+            //if we get here then the only thing left to do is to recurse into the rightmost child
+            return DeleteRecurse(curr.children[curr.numKeys]);
+        }
     }
 
     // (4 marks) Search for key k, true if found, false otherwise
@@ -165,7 +193,7 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
         //using a local function so we can run recursively in a semantically sound way (a seperate private method that is only called by this method would be the alternative) and so we can call the recursion without re-passing k
         bool SearchRecurse(Node<T> p)
         {
-            if (p == null) //if we've recursed into a null Node it means the value can't be found
+            if (p.numKeys == 0) //if we've recursed into an empty Node it means the value can't be found
             {
                 return false;
             }
@@ -189,8 +217,33 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
     // (8 marks) Build and return equivalent red-black tree
     public BSTforRBTree<T> Convert()
     {
-        // TODO: implement Convert
-        return null; //placeholder
+        BSTforRBTree<T> RBTree = new BSTforRBTree<T>();
+        ConvertRecurse(root); //void function builds the tree recursively
+        return RBTree;
+
+        void ConvertRecurse(Node<T> curr)
+        {
+            if (curr.numKeys >= 2) //if there are 2 or 3 keys, we should make the second key the root
+            {
+                RBTree.Add(curr.keys[1], Color.BLACK);
+            }
+            if(curr.numKeys > 0) //unless there are no keys, we always want to add the 1st key, if there is only one key it will naturally become the root this way
+            {
+            RBTree.Add(curr.keys[0], (curr.numKeys == 2) ? Color.RED : Color.BLACK);
+            }                           //^ ternary operator, ensures, in order to maintain balance, that in the event of there being two keys it goes in red
+            if (curr.numKeys == 3)
+            { //believe it or not but we only want to add a third key if there are three keys
+                RBTree.Add(curr.keys[2], Color.BLACK);
+            }
+            //recursing if need be
+            if (!curr.leaf)
+            {
+                for(int i=0; i<=curr.numKeys; i++) // we actually want <= to ensure the last child which is at [numKeys] gets picked up
+                {
+                    ConvertRecurse(curr.children[i]);
+                }
+            }
+        }
     }
 
     // (4 marks) Print the keys of the 2-3-4 tree in order
@@ -204,7 +257,7 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
             {
                 PrintRecurse(p.children[p.numKeys], indentation + 1);
             }
-            for (int i = p.numKeys-1; i <= 0; i--)
+            for (int i = p.numKeys - 1; i <= 0; i--)
             {
                 Console.WriteLine(indent + p.keys[i].ToString());
                 if (!p.leaf)

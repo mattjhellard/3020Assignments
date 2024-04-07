@@ -220,48 +220,43 @@ namespace LazyBinomialHeap
             }
         }
         // Re-implementation of print (5 marks)
-        // Recursively calls private PrintNode
+        // Recursively calls private print
         public void Print()
         {
-            if(Empty())
+            if (Empty())
             {
                 Console.WriteLine("!: The lazy heap is currently empty");
-                return;
             }
             for (int i = 0; i < B.Length; i++)
             {
-                if (B[i].Sibling != null)
+                if (B[i].Sibling == null)
                 {
-                    Console.WriteLine("!: Tree at index B[{0}] of Size 2^{0}", i);
-                    // Calls private print to recursively print starting at the first node
-                    PrintNode(B[i].Sibling);
-                    Console.WriteLine(); // Add a new line after each tree
+                    continue;
                 }
+
+                Console.WriteLine("!: Tree at index B[{0}] of Size 2^{0}", i);
+                // Calls private print to recursively print
+                Print(B[i].Sibling);
             }
         }
 
 
-        // Private PrintNode
-        private void PrintNode(LazyBinomialNode<T> node)
+        // Private Print
+  
+        private void Print(LazyBinomialNode<T> node)
         {
-            if (node == null)
+            Console.WriteLine(node.Item);
+            if (node.Sibling != null)
             {
-                return;
+                Console.Write(node.Item + " Has Sibling: ");
+                Print(node.Sibling);
             }
-            else
+            if (node.Child != null)
             {
-                // Print the current node's value
-                Console.Write(node.Item + " ");
-
-                // Print the siblings of the current node on the same line
-                PrintNode(node.Sibling);
-
-                // Move to the next line to print children
-                Console.WriteLine();
-
-                // Print the children of the current node beneath it
-                PrintNode(node.Child);
+                Console.Write (node.Item + " Has Child: ");
+                Print(node.Child);
             }
+            
         }
         // Returns true if the binomial heap is empty, false otherwise
         public bool Empty()
@@ -371,7 +366,7 @@ namespace LazyBinomialHeap
                             break;
 
                     }
-            } 
+            }         
         }
     }
 }

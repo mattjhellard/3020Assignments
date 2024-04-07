@@ -42,6 +42,8 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
             newRoot.keys[0] = root.keys[t - 1];
             newRoot.children[1] = Split(root);
             newRoot.children[0] = root;
+            newRoot.numKeys = 1;
+            newRoot.leaf = false;
             root = newRoot;
         }
         return InsertRecurse(root);
@@ -92,6 +94,7 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
                             }
                             p.keys[i] = p.children[i].keys[t - 1]; //place pulled up key
                             p.numKeys++;
+                            p.leaf = false;
                             p.children[i + 1] = Split(p.children[i]); //make the split (pulled up key is dropped from lower table in the operation),
                             if (k.CompareTo(p.keys[i]) > 0)
                             { //if the pulled up key should be to the left of our key we increment i to traverse right rather than left of it
@@ -113,8 +116,9 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
                         p.keys[j] = p.keys[j + 1];
                         p.children[j] = p.children[j + 1];
                     }
-                    p.keys[p.numKeys] = p.children[p.numKeys].keys[t - 1];
+                    p.keys[p.numKeys-1] = p.children[p.numKeys].keys[t - 1];
                     p.numKeys++;
+                    p.leaf = false;
                     Node<T> splitRight = Split(p.children[p.numKeys]);
                     p.children[p.numKeys - 1] = p.children[p.numKeys];
                     p.children[p.numKeys] = splitRight;
@@ -129,22 +133,25 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
         //returns right node resulting from split operation (passed node BECOMES left node) (we drop the key to pull up and assume the caller handles that)
         Node<T> Split(Node<T> full)
         {
-            full.leaf = false;
             Node<T> copy = full;
             full = new Node<T>(t);
             Node<T> right = new Node<T>(t);
-            for (int i = 0, j = 0, l = 0; i < 2 * t - 1; i++)
+            //we originally tried a more generalized solution but we ran out of time so now we abuse the known properties of a full 2-3-4 tree (3 keys to handle, 4 children to handle (the children can be empty))
+            full.keys[0] = copy.keys[0];
+            full.children[0] = copy.children[0];
+            full.children[1] = copy.children[1];
+            full.numKeys = 1;
+            if (full.children[0] != null || full.children[1] != null)
             {
-                if (i < t - 1)
-                {
-                    full.keys[j] = copy.keys[i];
-                    j++;
-                }
-                else if (i > t - 1)
-                {
-                    right.keys[l] = copy.keys[i];
-                    l++;
-                }
+                full.leaf = false;
+            }
+            right.keys[0] = copy.keys[2];
+            right.children[0] = copy.children[2];
+            right.children[1] = copy.children[3];
+            right.numKeys = 1;
+            if (right.children[0] != null || right.children[1] != null)
+            {
+                right.leaf = false;
             }
             return right;
         }
@@ -157,26 +164,27 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
 
         bool DeleteRecurse(Node<T> curr)
         {
-            if(curr.numKeys == 0) //we can't delete what's not there
+            if (curr == null || curr.numKeys == 0) //we can't delete what's not there
             { //can only get here if we recurse into an empty node which can only happen if the value we're trying to delete isn't in the tree
                 return false;
             }
-            for(int i=0; i<curr.numKeys; i++)
+            for (int i = 0; i < curr.numKeys; i++)
             {
                 int diff = k.CompareTo(curr.keys[i]);
-                if(diff < 0)
+                if (diff < 0)
                 { //if we should recurse
                     return DeleteRecurse(curr.children[i]);
                 }
-                if(diff == 0) //hit
+                if (diff == 0) //hit
                 {
                     //shift everything left and overwrite the location of the hit to delete
-                    for(int j=i; j<curr.numKeys-1; j++)
+                    for (int j = i; j < curr.numKeys; j++)
                     {
                         curr.keys[j] = curr.keys[j + 1];
                         curr.children[j] = curr.children[j + 1];
                     }
-                    curr.children[curr.numKeys-1] = curr.children[curr.numKeys];
+                    curr.children[curr.numKeys - 1] = curr.children[curr.numKeys];
+                    curr.numKeys--;
                     return true;
                 }
             }
@@ -193,7 +201,7 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
         //using a local function so we can run recursively in a semantically sound way (a seperate private method that is only called by this method would be the alternative) and so we can call the recursion without re-passing k
         bool SearchRecurse(Node<T> p)
         {
-            if (p.numKeys == 0) //if we've recursed into an empty Node it means the value can't be found
+            if ( p == null || p.numKeys == 0) //if we've recursed into an empty Node it means the value can't be found
             {
                 return false;
             }
@@ -227,9 +235,9 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
             {
                 RBTree.Add(curr.keys[1], Color.BLACK);
             }
-            if(curr.numKeys > 0) //unless there are no keys, we always want to add the 1st key, if there is only one key it will naturally become the root this way
+            if (curr.numKeys > 0) //unless there are no keys, we always want to add the 1st key, if there is only one key it will naturally become the root this way
             {
-            RBTree.Add(curr.keys[0], (curr.numKeys == 2) ? Color.RED : Color.BLACK);
+                RBTree.Add(curr.keys[0], (curr.numKeys == 2) ? Color.RED : Color.BLACK);
             }                           //^ ternary operator, ensures, in order to maintain balance, that in the event of there being two keys it goes in red
             if (curr.numKeys == 3)
             { //believe it or not but we only want to add a third key if there are three keys
@@ -238,7 +246,7 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
             //recursing if need be
             if (!curr.leaf)
             {
-                for(int i=0; i<=curr.numKeys; i++) // we actually want <= to ensure the last child which is at [numKeys] gets picked up
+                for (int i = 0; i <= curr.numKeys; i++) // we actually want <= to ensure the last child which is at [numKeys] gets picked up
                 {
                     ConvertRecurse(curr.children[i]);
                 }
@@ -252,12 +260,16 @@ public class TwoThreeFourTree<T> where T : IComparable<T>
         PrintRecurse(root, 0);
         void PrintRecurse(Node<T> p, int indentation)
         { //we go right to left to accurately represent 90-degree counter-clockwise rotation of tree
+            if (p == null)
+            {
+                return;
+            }
             String indent = new string('\t', indentation); //obscure overload of string that builds sequence of given char to given length
             if (!p.leaf)
             {
                 PrintRecurse(p.children[p.numKeys], indentation + 1);
             }
-            for (int i = p.numKeys - 1; i <= 0; i--)
+            for (int i = p.numKeys - 1; i >= 0; i--)
             {
                 Console.WriteLine(indent + p.keys[i].ToString());
                 if (!p.leaf)
@@ -389,6 +401,152 @@ public static class User
 {
     public static void Main()
     {
+        Console.WriteLine("3020 Assignment 3: C\nby\nMatthew Hellard\nBenjamin Macintosh\nInput (help) for commands listing\n");
+        bool run = true;
+        TwoThreeFourTree<int> tree = new TwoThreeFourTree<int>(); //we're exclusively using ints in main just to keep things simple, the code doesn't care what type is used as long as it implements the requisite interface(s)
+        while (run)
+        {
+            Console.Write("Input :");
+            String[] input = Console.ReadLine().Trim(' ').Split(' ');
+            int k;
+            switch (input[0].ToLower())
+            {
+                case "nt":
+                case "new tree":
+                    tree = new TwoThreeFourTree<int>();
+                    break;
+                case "insert":
+                case "insert key":
+                case "ik":
+                    try
+                    {
+                        if (input.Length >= 2)
+                        {
+                            k = Convert.ToInt32(input[1]);
+                        }
+                        else
+                        {
+                            Console.Write("Input int to insert :");
+                            k = Convert.ToInt32(Console.ReadLine());
+                        }
+                        if (!tree.Insert(k))
+                        {
+                            Console.WriteLine("!: Failed to insert new key " + k);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is FormatException || e is OverflowException)
+                        {
+                            Console.WriteLine("!: Invalid input");
+                        }
+                        else
+                        { //we want to pass on the exception if it isn't one we expect
+                            throw;
+                        }
+                    }
+                    break;
+                case "delete":
+                case "delete key":
+                case "dk":
+                    try
+                    {
+                        if (input.Length >= 2)
+                        {
+                            k = Convert.ToInt32(input[1]);
+                        }
+                        else
+                        {
+                            Console.Write("Input int to delete :");
+                            k = Convert.ToInt32(Console.ReadLine());
+                        }
+                        if (!tree.Delete(k))
+                        {
+                            Console.WriteLine("!: Failed to delete key " + k);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is FormatException || e is OverflowException)
+                        {
+                            Console.WriteLine("!: Invalid input");
+                        }
+                        else
+                        { //we want to pass on the exception if it isn't one we expect
+                            throw;
+                        }
+                    }
+                    break;
+                case "search":
+                case "search for key":
+                case "search key":
+                case "sk":
+                    try
+                    {
+                        if (input.Length >= 2)
+                        {
+                            k = Convert.ToInt32(input[1]);
+                        }
+                        else
+                        {
+                            Console.Write("Input key to find :");
+                            k = Convert.ToInt32(Console.ReadLine());
+                        }
+                        if (!tree.Search(k))
+                        {
+                            Console.WriteLine("!: Failed to find key " + k);
+                        }
+                        else
+                        {
+                            Console.WriteLine("!: Found key " + k);
+                        }
 
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is FormatException || e is OverflowException)
+                        {
+                            Console.WriteLine("!: Invalid input");
+                        }
+                        else
+                        { //we want to pass on the exception if it isn't one we expect
+                            throw;
+                        }
+                    }
+                    break;
+                case "p":
+                case "print":
+                    tree.Print();
+                    break;
+                case "convert":
+                case "c":
+                    tree.Convert().Print(); //this print call runs on the rb tree that is made in the conversion
+                    break;
+                case "q":
+                case "quit":
+                case "exit":
+                case "qq":
+                case "qqq":
+                    run = false;
+                    break;
+                case "help":
+                case "h":
+                case "?":
+                    Console.WriteLine(
+                        "!: All subsequent arguments past commands optional\n" +
+                        "-Help (h)\n" + //implemented
+                        "-New Tree (nt)\n" + // implemented
+                        "-Insert Key (ik) <int to insert>\n" +
+                        "-Delete Key (dk) <int to delete>\n" +
+                        "-Search for Key (sk) <int to search for>\n" +
+                        "-Convert to red-black tree (c)\n" +
+                        "-Print current tree (p)\n" +
+                        "-Quit (q)\n");
+                    break;
+                default:
+                    Console.WriteLine("!: unknown input, use (help) for list of valid commands");
+                    break;
+            }
+        }
     }
 }

@@ -26,7 +26,7 @@ public class PPQTree<T> where T : IComparable<T>
     public int Compare(PPQTree<T> newTuple)
     {
         if (newTuple.Length != this.tuple.Length)
-        { //TODO: double-check that we can't work around this somehow, rather than throw an exception
+        {
             throw new ArgumentOutOfRangeException("Cannot compare differently sized tuples");
         }
         // Core competency of the program ----------------------------
@@ -70,9 +70,9 @@ public class User
 {
     public static void Main()
     {
-        //TODO: consider improving Main, such as by creating a runtime UI, for more rapid and understandable testing
-        PPQTree<int> oldTuple = new PPQTree<int>(new[] { 0, 2 });
-        PPQTree<int> newTuple = new PPQTree<int>(new[] { 2, 4 });
+        // Our program is so short and narrow that it's faster to manually modify these values in the source code and recompile for each test rather than bother with any kind of runtime UI
+        PPQTree<int> oldTuple = new PPQTree<int>(new[] { 3, 2, 3 });
+        PPQTree<int> newTuple = new PPQTree<int>(new[] { 2, 3, 4 });
         Console.WriteLine(oldTuple.Compare(newTuple));
         Console.ReadLine();
     }

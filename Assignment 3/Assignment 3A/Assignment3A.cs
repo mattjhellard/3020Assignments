@@ -60,7 +60,7 @@ public class PPQTree<T> where T : IComparable<T>
             int value = 2;
             for (int i = 1; i < power; i++)
             {
-                value = value * 2;
+                value *= 2;
             }
             return value;
         }
